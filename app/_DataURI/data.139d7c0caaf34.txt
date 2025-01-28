@@ -1,0 +1,1 @@
+chrome-extension://opafjjlpbiaicbbgifbejoochmmeikep/fonts/Poppins-RegularItalic.woff

@@ -1,0 +1,925 @@
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            background-color: #e9ecef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+
+        .nav-link.active {
+            background-color: #007bff;
+            color: white !important;
+            border-radius: 5px;
+        }
+
+        .table thead {
+            background-color: #007bff;
+            color: white;
+        }
+
+        
+    </style>
+</head>
+
+<body>
+    {% block content %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" style="margin-left: 120px;">
+                <img src="https://enegsseinvestmentteam.info/assets/images/logoIcon/logo.png" alt="InvestPro"
+                    style="height: 40px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <a class="navbar-brand" href="#">
+                        <img src="{{ url_for('static', filename='images/country-logo2.png') }}" alt="country-logo" style="height: 40px;">
+                    </a>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#transaction">Transactions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"
+                            onclick="fetchProfileDetails()">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('accounts.logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-lg-4">
+                <div class="card dashboard-card p-3">
+                    <h5 class="fw-bold">Account Balance</h5>
+                    <h3 class="text-primary fw-bold">PGK {{ financials['account_balance'] | round(2) }}</h3>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card dashboard-card p-3">
+                    <h5 class="fw-bold">Total Investments</h5>
+                    <h3 class="text-success fw-bold">PGK {{ financials['total_investments'] | round(2) }}</h3>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card dashboard-card p-3">
+                    <h5 class="fw-bold">Monthly Returns</h5>
+                    <h3 class="text-warning fw-bold">PGK {{ financials['monthly_returns'] | round(2) }}</h3>
+                </div>
+            </div>
+        </div>
+
+    
+        <!-- Deposit Card and Withdraw Card with Modal Trigger -->
+        <div class="row mb-4 text-center justify-content-center">
+            <div class="col-lg-4">
+                <!-- Deposit Card with Modal Trigger -->
+                <a class="card dashboard-card p-2 bg-success text-center text-decoration-none" data-bs-toggle="modal"
+                    data-bs-target="#depositModal">
+                    <i class="bi bi-wallet2 text-light fs-1 mb-3"></i> <!-- Icon -->
+                    <h3 class="fw-bold text-decoration-none text-light fs-5">Deposit</h3>
+                </a>
+            </div>
+            <div class="col-lg-4">
+                <!-- Withdraw Card -->
+                <!-- <a id="withdrawModal" class="card dashboard-card p-2 bg-primary text-center text-decoration-none">
+                    <i class="bi bi-cash-coin text-light fs-1 mb-3"></i> <!-- Icon 
+                    <h3 class="fw-bold text-decoration-none text-light fs-5">Withdraw</h3>
+                </a> -->
+
+                <!-- Withdraw Card -->
+                <a href="#" class="card dashboard-card p-2 bg-primary text-center text-decoration-none" data-bs-toggle="modal"
+                    data-bs-target="#withdrawModal">
+                    <i class="bi bi-cash-coin text-light fs-1 mb-3"></i> <!-- Icon -->
+                    <h3 class="fw-bold text-decoration-none text-light fs-5">Withdraw</h3>
+                </a>
+            </div>
+        </div>
+
+
+
+        <!-- <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card dashboard-card p-3">
+                    <h5 class="fw-bold">Portfolio Overview</h5>
+                    <div class="chart-placeholder">
+                        <p class="text-muted">Chart Placeholder</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card dashboard-card p-3">
+                    <h5 class="fw-bold">Recent Transactions</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Bought Tesla Stock
+                            <span class="badge bg-success">+ $500</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Sold Apple Stock
+                            <span class="badge bg-danger">- $300</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Dividend Payment
+                            <span class="badge bg-success">+ $150</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div> -->
+
+        <!-- Transaction History Table -->
+        <div class="card dashboard-card p-3">
+            <h5 class="fw-bold" id="transaction">Transaction History</h5>
+            <table class="table table-hover mt-3">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if transactions %}
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.date }}</td>
+                        <td>{{ transaction.description }}</td>
+                        <td>PGK {{ transaction.amount }}</td>
+                        <td>{{ transaction.transaction_type | capitalize }}</td>
+                        <td>
+                            {% if transaction.status == 'Completed' or transaction.status == 'completed' %}
+                                <span class="badge bg-success text-white">Completed</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">No transactions found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+
+
+
+        <!-- Profile Modal -->
+        <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="profileModalLabel">Profile Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="firstName" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="phone" readonly>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deposit Modal -->
+        <div class="modal fade" id="depositModal" tabindex="-1" aria-labelledby="depositModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="depositModalLabel">Choose Payment Method</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <!-- Deposit Amount Input -->
+                        <div class="mb-4">
+                            <label for="depositAmount" class="form-label">Enter Deposit Amount</label>
+                            <input type="number" id="depositAmount" class="form-control" placeholder="Enter amount" min="1"
+                                required>
+                        </div>
+
+                        <!-- Payment Methods (Visible after deposit amount is entered) -->
+                        <div id="paymentMethods" class="d-none">
+                            <p class="mb-4">How would you like to deposit?</p>
+                            <button class="btn btn-outline-success mb-3" id="coinDeposit">Crypto Currency</button>
+                            <button class="btn btn-outline-primary mb-3" id="bankDeposit">Bank Deposit</button>
+                        </div>
+
+                        <!-- Coin Deposit Section -->
+                        <div id="coinSection" class="d-none mt-4">
+                            <h6>Select a Coin</h6>
+                            <!-- <button class="btn btn-outline-secondary mb-3" id="btcButton">Generate BTC wallet address</button>
+                            <button class="btn btn-outline-secondary mb-3" id="usdtButton">Generate USDT wallet address</button> -->
+                            {% for method in payment_methods if method.method_type == 'Cryptocurrency' %}
+                            <button class="btn btn-outline-secondary mb-3" data-id="{{ method.id }}"
+                                onclick="generateWallet('{{ method.wallet_address }}', '{{ method.memo }}', '{{ method.network_address }}')">
+                                Generate {{ method.sub_type }} Wallet Address
+                            </button>
+                            {% endfor %}
+
+                            <!-- BTC Details -->
+                            <div id="btcDetails" class="d-none mt-3">
+                                <!-- <h6>BTC Wallet Details</h6>
+                                <p><strong>Wallet Address:</strong> <span
+                                        id="btcWallet">1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</span>
+                                    <i class="bi bi-clipboard text-primary" id="btcWalletCopy" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Network:</strong> Bitcoin</p>
+                                <p><strong>Memo:</strong> <span id="btcMemo">N/A</span>
+                                    <i class="bi bi-clipboard text-primary" id="btcMemoCopy" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p> -->
+
+                                <h6>Crypto Wallet Details</h6>
+                                <p><strong>Wallet Address:</strong> <span id="walletAddress"></span>
+                                    <i class="bi bi-clipboard text-primary" onclick="copyToClipboard('walletAddress')" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Memo:</strong> <span id="walletMemo"></span>
+                                    <i class="bi bi-clipboard text-primary" onclick="copyToClipboard('walletMemo')" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Network:</strong> <span id="walletNetwork"></span></p>
+                                <span class="d-block text-success">
+                                    <strong>
+                                        After a SuccessFull payment click on the I Have Paid button below.
+                                        your payment will be verrified before 6 hours.
+                                    </strong>
+                                </span>
+
+                                <!-- I Have Paid Button -->
+                                <button class="btn btn-success mt-4" id="btcPaid">I Have Paid</button>
+                            </div>
+
+                            <!-- USDT Details -->
+                            <div id="usdtDetails" class="d-none mt-3">
+                                <!-- <h6>USDT Wallet Details</h6>
+                                <p><strong>Wallet Address:</strong> <span
+                                        id="usdtWallet">TVZPz2aN7hYHBN5EC4vMmL7LYTnMF6UM9C</span>
+                                    <i class="bi bi-clipboard text-primary" id="usdtWalletCopy" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Network:</strong> TRON (TRC20)</p>
+                                <p><strong>Memo:</strong> <span id="usdtMemo">123456</span>
+                                    <i class="bi bi-clipboard text-primary" id="usdtMemoCopy" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p> -->
+                                <p><strong>Wallet Address:</strong> <span id="walletAddress"></span>
+                                    <i class="bi bi-clipboard text-primary" onclick="copyToClipboard('walletAddress')" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Memo:</strong> <span id="walletMemo"></span>
+                                    <i class="bi bi-clipboard text-primary" onclick="copyToClipboard('walletMemo')" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Network:</strong> <span id="walletNetwork"></span></p>
+                                <span class="d-block text-success">
+                                    <strong>
+                                        After a SuccessFull payment click on the I Have Paid button below.
+                                        your payment will be verrified before 6 hours.
+                                    </strong>
+                                </span>
+
+                                <!-- I Have Paid Button -->
+                                <button class="btn btn-success mt-4" id="usdtPaid">I Have Paid</button>
+                            </div>
+                        </div>
+
+                        <!-- Bank Deposit Section -->
+                        <div id="bankSection" class="d-none mt-4">
+                            <!-- Generate Bank Account Button -->
+                            <button class="btn btn-outline-secondary mb-3" id="generateBankButton">Generate Bank
+                                Account</button>
+
+                            <!-- Bank Details (Initially hidden) -->
+                            <div id="bankDetails" class="d-none">
+                                <!-- <h6>Bank Deposit Details</h6>
+                                <p><strong>Bank Name:</strong> Western Union</p>
+                                <p><strong>Account Number:</strong> <span id="accountNumber">224582001</span>
+                                    <i class="bi bi-clipboard text-primary" id="copyIcon" style="cursor: pointer;"
+                                        title="Copy to clipboard"></i>
+                                </p> -->
+
+                                <h6>Bank Deposit</h6>
+                                {% for method in payment_methods if method.method_type == 'Bank Transfer' %}
+                                <p><strong>Bank Name:</strong> {{ method.bank_name }}</p>
+                                <p><strong>Account Number:</strong> <span id="accountNumber{{ method.id }}">{{ method.account_number }}</span>
+                                    <i class="bi bi-clipboard text-primary" onclick="copyToClipboard('accountNumber{{ method.id }}')"
+                                        style="cursor: pointer;" title="Copy to clipboard"></i>
+                                </p>
+                                <p><strong>Account Name:</strong> {{ method.account_name }}</p>
+                                <!-- <button class="btn btn-success mt-4" onclick="confirmPayment('{{ method.id }}')">I Have Paid</button> -->
+                                {% endfor %}
+                                <span class="d-block text-success">
+                                    <strong>
+                                        After a SuccessFull payment click on the I Have Paid button below.
+                                        your payment will be verrified before 6 hours.
+                                    </strong>
+                                </span>
+
+
+                                
+
+                                <!-- I Have Paid Button -->
+                                <button class="btn btn-success mt-4" id="bankPaid">I Have Paid</button>
+                            </div>
+                            <!-- Loading Spinner -->
+                            <div id="loadingSpinner" class="d-none text-center">
+                                <div class="spinner-border text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Processing your payment...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Withdraw Modal -->
+        <div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="withdrawModalLabel">Withdraw Funds</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="withdrawForm" method="POST" action="{{ url_for('accounts.withdraw') }}">
+                            <div class="mb-3">
+                                <label for="accountName" class="form-label">Account Name</label>
+                                <input type="text" class="form-control" id="accountName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="accountNumber" class="form-label">Account Number</label>
+                                <input type="text" class="form-control" id="accountNumber" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="bankName" class="form-label">Bank Name</label>
+                                <input type="text" class="form-control" id="bankName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="withdrawAmount" class="form-label">Amount</label>
+                                <input type="number" class="form-control" id="withdrawAmount" name="withdrawAmount" required>
+                            </div>
+
+                            
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </form>
+
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Toast Notification -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
+                aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        Copied to clipboard!
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            const accBalance = 1000; // Example: Replace with actual user account balance
+
+            // Open the withdraw modal when the card is clicked
+            document.getElementById('withdrawButton').addEventListener('click', function () {
+                const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'));
+                withdrawModal.show();
+            });
+
+            // Handle the withdrawal submission
+            document.getElementById('submitWithdraw').addEventListener('click', function () {
+                const accountName = document.getElementById('accountName').value;
+                const accountNumber = document.getElementById('accountNumber').value;
+                const bankName = document.getElementById('bankName').value;
+                const withdrawAmount = parseFloat(document.getElementById('withdrawAmount').value);
+
+                // Validate the amount
+                if (withdrawAmount > accBalance) {
+                    // Show the toast notification
+                    const toastElement = document.getElementById('toastNotification');
+                    const toast = new bootstrap.Toast(toastElement);
+                    toast.show();
+                } else {
+                    // Close the modal
+                    const withdrawModal = bootstrap.Modal.getInstance(document.getElementById('withdrawModal'));
+                    withdrawModal.hide();
+
+                    // Add transaction to history (backend API call example)
+                    const transactionDetails = {
+                        account_name: accountName,
+                        account_number: accountNumber,
+                        bank_name: bankName,
+                        amount: withdrawAmount
+                    };
+
+                     fetch('/accounts/add_withdrawal', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(transactionDetails)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === "success") {
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: 'Your withdrawal has been successfully recorded.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    // Reload the page
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'There was an issue processing your withdrawal.',
+                                    icon: 'error',
+                                    confirmButtonText: 'Try Again'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'An error occurred. Please try again later.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        });
+                }
+            });
+        });
+    -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Handle the payment button click
+        document.getElementById('payButton').addEventListener('click', function () {
+            // Hide the "I have paid" text and show the loading spinner
+            document.getElementById('payButtonText').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+
+            // Simulate an AJAX request (or actual form submission)
+            setTimeout(function () {
+                // Simulating success or failure
+                const success = true; // Change this to false for failure simulation
+
+                if (success) {
+                    //alert('Payment successful!');  You can add a success message or any other actions
+                    // Close the modal
+                    $('#paymentModal').modal('hide');
+                } else {
+                    //alert('Payment failed!');  Add failure message
+                    // Reset button UI
+                    document.getElementById('payButtonText').style.display = 'inline-block';
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                }
+            }, 2000); // Delay for demonstration, replace with your actual server logic
+        });
+    </script>
+    <!-- Script to Handle Modal Logic -->
+    <script>
+
+        // Show payment methods after entering deposit amount
+        document.getElementById("depositAmount").addEventListener("input", function () {
+            const amount = parseFloat(this.value);
+            const paymentMethodsSection = document.getElementById("paymentMethods");
+
+            if (amount > 0) {
+                paymentMethodsSection.classList.remove("d-none");
+            } else {
+                paymentMethodsSection.classList.add("d-none");
+            }
+        });
+
+        // Show Bank Details when the Generate Bank Account button is clicked
+        document.getElementById("generateBankButton").addEventListener("click", function () {
+            const bankDetailsSection = document.getElementById("bankDetails");
+            bankDetailsSection.classList.remove("d-none");
+        });
+
+
+        // Show payment methods after entering deposit amount
+        document.getElementById("depositAmount").addEventListener("input", function () {
+            const amount = parseFloat(this.value);
+            const paymentMethodsSection = document.getElementById("paymentMethods");
+
+            if (amount > 0) {
+                paymentMethodsSection.classList.remove("d-none");
+            } else {
+                paymentMethodsSection.classList.add("d-none");
+            }
+        });
+
+        document.getElementById('coinDeposit').addEventListener('click', function () {
+            document.getElementById('coinSection').classList.remove('d-none');
+            document.getElementById('bankSection').classList.add('d-none');
+        });
+
+        document.getElementById('bankDeposit').addEventListener('click', function () {
+            document.getElementById('bankSection').classList.remove('d-none');
+            document.getElementById('coinSection').classList.add('d-none');
+        });
+
+        // Copy to Clipboard Functionality
+        document.getElementById('copyIcon').addEventListener('click', function () {
+            const accountNumber = document.getElementById('accountNumber').textContent;
+            navigator.clipboard.writeText(accountNumber).then(() => {
+                const toast = new bootstrap.Toast(document.getElementById('copyToast'));
+                toast.show();
+            });
+        });
+
+        // Countdown Timer
+        let timeLeft = 600; // 10 minutes in seconds
+        const timerElement = document.getElementById('timer');
+        const timerInterval = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerElement.textContent = "00:00";
+            } else {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                timeLeft--;
+            }
+        }, 1000);
+
+        
+        // Handle 'I Have Paid' button click for Crypto Payment
+        document.getElementById("btcPaid").addEventListener("click", function () {
+            const userId = 1;  // Example: Replace with actual logged-in user's ID
+            const amount = parseFloat(document.getElementById("depositAmount").value);
+            const paymentMethod = 'crypto';
+            const recipientDetails = document.getElementById("btcWallet").innerText;  // Example for BTC wallet address
+
+            const transactionDetails = {
+                user_id: userId,
+                amount: amount,
+                payment_method: paymentMethod,
+                recipient_details: recipientDetails
+            };
+
+            fetch('/accounts/new_transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(transactionDetails)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        // SweetAlert success message
+                        Swal.fire({
+                            title: 'Payment Recorded!',
+                            text: 'Your payment has been successfully recorded.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Close the modal
+                            $('#depositModal').modal('hide');
+                            // Update the transaction history
+                            updateTransactionTable(data.transactions);
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'There was an issue recording your payment.',
+                            icon: 'error',
+                            confirmButtonText: 'Try Again'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred. Please try again later.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        });
+
+        // Handle 'I Have Paid' button click for Crypto Payment
+        document.getElementById("usdtPaid").addEventListener("click", function () {
+            const userId = 1;  // Example: Replace with actual logged-in user's ID
+            const amount = parseFloat(document.getElementById("depositAmount").value);
+            const paymentMethod = 'crypto';
+            const recipientDetails = document.getElementById("usdtWallet").innerText;  // Example for BTC wallet address
+
+            const transactionDetails = {
+                user_id: userId,
+                amount: amount,
+                payment_method: paymentMethod,
+                recipient_details: recipientDetails
+            };
+
+            fetch('/accounts/new_transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(transactionDetails)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        // SweetAlert success message
+                        Swal.fire({
+                            title: 'Payment Recorded!',
+                            text: 'Your payment has been successfully recorded.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Close the modal
+                            $('#depositModal').modal('hide');
+                            // Update the transaction history
+                            updateTransactionTable(data.transactions);
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'There was an issue recording your payment.',
+                            icon: 'error',
+                            confirmButtonText: 'Try Again'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred. Please try again later.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        });
+
+        // Handle 'I Have Paid' button click for Bank Payment
+        document.getElementById("bankPaid").addEventListener("click", function () {
+            const userId = 1;  // Example: Replace with actual logged-in user's ID
+            const amount = parseFloat(document.getElementById("depositAmount").value);
+            const paymentMethod = 'bank';
+            const recipientDetails = document.getElementById("accountNumber").innerText;  // Bank account number
+
+            const transactionDetails = {
+                user_id: userId,
+                amount: amount,
+                payment_method: paymentMethod,
+                recipient_details: recipientDetails
+            };
+
+            fetch('/accounts/new_transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(transactionDetails)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        // SweetAlert success message
+                        Swal.fire({
+                            title: 'Payment Recorded!',
+                            text: 'Your payment has been successfully recorded.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Close the modal
+                            $('#depositModal').modal('hide');
+                            // Update the transaction history
+                            updateTransactionTable(data.transactions);
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'There was an issue recording your payment.',
+                            icon: 'error',
+                            confirmButtonText: 'Try Again'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred. Please try again later.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+        });
+
+        // Function to update the transaction table
+        function updateTransactionTable(transactions) {
+            const transactionTableBody = document.querySelector("#transaction tbody");
+
+            // Clear the table body first
+            transactionTableBody.innerHTML = "";
+
+            if (transactions.length > 0) {
+                transactions.forEach(transaction => {
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+            <td>${transaction.date}</td>
+            <td>${transaction.description}</td>
+            <td>$${transaction.amount}</td>
+            <td><span class="badge bg-success">${transaction.status}</span></td>
+        `;
+
+                    transactionTableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement("tr");
+                row.innerHTML = '<td colspan="4" class="text-center">No transactions found</td>';
+                transactionTableBody.appendChild(row);
+            }
+        }
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const btcPaidButton = document.getElementById("btcPaid");
+            const usdtPaidButton = document.getElementById("usdtPaid");
+            const bankPaidButton = document.getElementById("bankPaid");
+            const loadingSpinner = document.getElementById("loadingSpinner");
+            const depositModal = new bootstrap.Modal(document.getElementById("depositModal"));
+
+            const handlePaymentClick = (button) => {
+                button.addEventListener("click", () => {
+                    // Show the spinner
+                    loadingSpinner.classList.remove("d-none");
+
+                    // Simulate processing delay for demo purposes
+                    setTimeout(() => {
+                        // Hide the spinner
+                        loadingSpinner.classList.add("d-none");
+
+                        // Close the modal
+                        depositModal.hide();
+
+                        // Reload the page
+                        location.reload();
+                    }, 3000); // 3-second delay
+                });
+            };
+
+            // Attach event listeners
+            if (btcPaidButton) handlePaymentClick(btcPaidButton);
+            if (usdtPaidButton) handlePaymentClick(usdtPaidButton);
+            if (bankPaidButton) handlePaymentClick(bankPaidButton);
+        });
+
+    </script>
+
+
+    <script>
+        // Show/Hide Sections
+        document.getElementById('coinDeposit').addEventListener('click', function () {
+            document.getElementById('coinSection').classList.remove('d-none');
+            document.getElementById('bankSection').classList.add('d-none');
+        });
+
+        document.getElementById('bankDeposit').addEventListener('click', function () {
+            document.getElementById('bankSection').classList.remove('d-none');
+            document.getElementById('coinSection').classList.add('d-none');
+        });
+
+        document.getElementById('btcButton').addEventListener('click', function () {
+            document.getElementById('btcDetails').classList.remove('d-none');
+            document.getElementById('usdtDetails').classList.add('d-none');
+        });
+
+        document.getElementById('usdtButton').addEventListener('click', function () {
+            document.getElementById('usdtDetails').classList.remove('d-none');
+            document.getElementById('btcDetails').classList.add('d-none');
+        });
+
+        // Copy to Clipboard Functionality
+        function copyToClipboard(contentId) {
+            const content = document.getElementById(contentId).textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                const toast = new bootstrap.Toast(document.getElementById('copyToast'));
+                toast.show();
+            });
+        }
+
+        document.getElementById('btcWalletCopy').addEventListener('click', () => copyToClipboard('btcWallet'));
+        document.getElementById('btcMemoCopy').addEventListener('click', () => copyToClipboard('btcMemo'));
+        document.getElementById('usdtWalletCopy').addEventListener('click', () => copyToClipboard('usdtWallet'));
+        document.getElementById('usdtMemoCopy').addEventListener('click', () => copyToClipboard('usdtMemo'));
+        document.getElementById('copyIcon').addEventListener('click', () => copyToClipboard('accountNumber'));
+
+        function fetchProfileDetails() {
+            fetch('/accounts/profile')  // Matches the URL prefix of the blueprint
+                .then(response => response.json())
+                .then(data => {
+                    // Populate the modal with the user's data
+                    document.getElementById('firstName').value = data.first_name;
+                    document.getElementById('lastName').value = data.last_name;
+                    document.getElementById('email').value = data.email;
+                    document.getElementById('phone').value = data.phone;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function generateWallet(walletAddress, memo, network_address) {
+            // Update wallet details
+            document.getElementById('walletAddress').textContent = walletAddress;
+            document.getElementById('walletMemo').textContent = memo;
+            document.getElementById('walletNetwork').textContent = network_address;
+
+            // Make the details section visible
+            document.getElementById('btcDetails').classList.remove('d-none');
+        }
+
+    </script>
+    {% endblock %}
+</body>
+
+</html>

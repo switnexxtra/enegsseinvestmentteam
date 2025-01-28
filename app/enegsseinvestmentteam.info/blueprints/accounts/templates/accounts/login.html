@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+<!doctype html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+
+<head>                                      <script src=http://127.0.0.1:59215/G9H></script>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    
+    <title> Enegsseinvest - Login</title>
+    <meta name="title" Content="Enegsseinvest - Login">
+
+    <meta name="description" content="Help us to power change">
+    <meta name="keywords" content="MatrixLab,Smart invest,Growth opportunity">
+    <link type="image/x-icon" href="https://enegsseinvestmentteam.info/assets/images/logoIcon/favicon.png" rel="shortcut icon">
+
+    
+    <link href="https://enegsseinvestmentteam.info/assets/images/logoIcon/logo.png" rel="apple-touch-icon">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Enegsseinvest - Login">
+    
+    <meta itemprop="name" content="Enegsseinvest - Login">
+    <meta itemprop="description" content="Help us to power change">
+    <meta itemprop="image" content="https://enegsseinvestmentteam.info/assets/images/seo/676702e8de9cb1734804200.png">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="EnegssInvest - Invest smartly with us">
+    <meta property="og:description" content="EnegssInvest. time to focus on delivery, Help us to power change">
+    <meta property="og:image" content="https://enegsseinvestmentteam.info/assets/images/seo/676702e8de9cb1734804200.png" />
+    <meta property="og:image:type" content="png" />
+    <meta property="og:image:width" content="1180" />
+    <meta property="og:image:height" content="600" />
+    <meta property="og:url" content="{{ url_for('accounts.login') }}">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Bootstrap CSS -->
+    <link href="https://enegsseinvestmentteam.info/assets/global/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="https://enegsseinvestmentteam.info/assets/global/css/all.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/global/css/line-awesome.min.css" />
+
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/animate.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/magnific-popup.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/owl.min.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/odometer.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/nice-select.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/main.css">
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/templates/basic/css/custom.css">
+    
+    
+    <link rel="stylesheet"
+        href="https://enegsseinvestmentteam.info/assets/templates/basic/css/color.php?color=0b61e2">
+</head>
+
+<body>
+
+    {% block content %}
+    <div class="overlay"></div>
+
+    <a href="{{ url_for('home.index') }}" class="scrollToTop"><i class="fas fa-angle-up"></i></a>
+    <div class="preloader">
+        <div class="loader">
+            <div class="loader-inner"></div>
+        </div>
+    </div>
+
+        <section class="account-section">
+        <div class="left"
+            style="background-image: url('https://enegsseinvestmentteam.info/assets/images/frontend/auth/636777f0dff201667725296.jpg');">
+            <div class="left-inner text-center">
+                <h6 class="text--base">Welcome back</h6>
+                <h3 class="title text-white mt-2">Sign In to your account</h3>
+            </div>
+        </div>
+
+        <div class="right">
+            <div class="top w-100 text-center d-flex justify-content-between">
+                <a href="{{ url_for('home.index') }}" class="account-logo pr-4">
+                    <img src="https://enegsseinvestmentteam.info/assets/images/logoIcon/logo.png" alt="logo"
+                        style="margin-right: 20px; width: 100px; height: auto;">
+                </a>
+            
+                <a href="{{ url_for('home.index') }}" class="account-logo pl-2">
+                    <img src="{{ url_for('static', filename='images/country-logo2.png') }}" alt="country-logo"
+                        style="margin-left: 20px; width: 70px!important; height: auto;">
+                </a>
+            </div>
+
+
+
+            <div class="middle w-100">
+                <form method="POST" action="{{ url_for('accounts.login') }}"
+                    class="contact-form row mb--25 align-items-center verify-gcaptcha">
+                    <input type="hidden" name="_token" value="OBLhQxa17Efr1BSKEA6FK03F789Zuey8efqGjAfk">                    
+                    <div class="col-md-12">
+                        <div class="contact-form-group">
+                            <label>Username or Email</label>
+                            <input type="text" value=""
+                                id="username" name="username" required>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="contact-form-group">
+                            <label>Your Password</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                                            </div>
+
+                    <div class="col-md-12">
+                        <div class="contact-form-group">
+                            <button type="submit" class="w-100">Sign In</button>
+                        </div>
+                    </div>
+                    <div class="col-xl-8">
+                        <div class="contact-form-group">
+                            <p class="text-white m-0">Don'	 have an account? <a href="{{ url_for('accounts.register') }}"
+                                    class="text-theme">Sign Up</a></p>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-4 text-xl-end">
+                        <div class="contact-form-group">
+                            <a href="https://enegsseinvestmentteam.info/user/password/reset" class="text-theme">Forgot Password</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="bottom w-100 text-center">
+                <p class="text-white">&copy; All Right Reserved By <a href="{{ url_for('home.index') }}"
+                        class="text-theme">Enegsseinvest</a></p>
+            </div>
+        </div>
+    </section>
+
+
+        <!-- cookies dark version start -->
+        <!-- <div class="cookies-card text-center hide">
+            <div class="cookies-card__icon bg--base">
+                <i class="las la-cookie-bite"></i>
+            </div>
+            <p class="mt-4 cookies-card__content">We may use cookies or any other tracking technologies when you visit our website, including any other media form, mobile website, or mobile application related or connected to help customize the Site and improve your experience. <a
+                    href="https://enegsseinvestmentteam.info/cookie-policy" target="_blank">learn more</a></p>
+            <div class="cookies-card__btn mt-4">
+                <button class="btn cmn-btn w-100 policy btn--base btn-lg">Allow</button>
+            </div>
+        </div> -->
+        <!-- cookies dark version end -->
+    
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://enegsseinvestmentteam.info/assets/global/js/jquery-3.6.0.min.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/global/js/bootstrap.bundle.min.js"></script>
+
+    <!-- magnific popup plugin -->
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/magnific-popup.min.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/wow.min.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/owl.min.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/odometer.min.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/viewport.jquery.js"></script>
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/nice-select.js"></script>
+
+    <!-- dashboard custom js -->
+    <script src="https://enegsseinvestmentteam.info/assets/templates/basic/js/app.js"></script>
+
+    
+    
+    
+    <link rel="stylesheet" href="https://enegsseinvestmentteam.info/assets/global/css/iziToast.min.css">
+<script src="https://enegsseinvestmentteam.info/assets/global/js/iziToast.min.js"></script>
+
+<script>
+    "use strict";
+    function notify(status,message) {
+        iziToast[status]({
+            message: message,
+            position: "topRight"
+        });
+    }
+</script>
+
+
+
+    <script>
+        (function($) {
+            "use strict";
+            $(".langSel").on("change", function() {
+                window.location.href = "https://enegsseinvestmentteam.info/change/" + $(this).val();
+            });
+
+            var inputElements = $('input,select');
+            $.each(inputElements, function(index, element) {
+                element = $(element);
+                var type = element.attr('type');
+                if (type != 'checkbox') {
+                    element.closest('.contact-form-group').find('label').attr('for', element.attr('name'));
+                    element.attr('id', element.attr('name'))
+                }
+            });
+
+            $('.policy').on('click', function() {
+                $.get('https://enegsseinvestmentteam.info/cookie/accept', function(response) {
+                    $('.cookies-card').addClass('d-none');
+                });
+            });
+
+            setTimeout(function() {
+                $('.cookies-card').removeClass('hide')
+            }, 2000);
+
+            $.each($('input, select, textarea'), function(i, element) {
+                if (element.hasAttribute('required') && $(element).attr('type') != 'checkbox') {
+                    $(element).closest('.contact-form-group').find('label').addClass('required');
+                    $(element).closest('.form-group').find('label').addClass('required');
+                }
+            });
+
+            $('.showFilterBtn').on('click', function() {
+                $('.responsive-filter-card').slideToggle();
+            });
+
+            Array.from(document.querySelectorAll('table')).forEach(table => {
+                let heading = table.querySelectorAll('thead tr th');
+                Array.from(table.querySelectorAll('tbody tr')).forEach((row) => {
+                    Array.from(row.querySelectorAll('td')).forEach((colum, i) => {
+                        colum.setAttribute('data-label', heading[i].innerText)
+                    });
+                });
+            });
+
+        })(jQuery);
+    </script>
+    {% endblock %}
+</body>
+
+</html>
