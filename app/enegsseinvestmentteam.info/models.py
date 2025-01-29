@@ -1,7 +1,13 @@
 from datetime import datetime
-from extensions import db  # Import db from extensions
+# from extensions import db  # Import db from extensions
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
+
+from flask_sqlalchemy import SQLAlchemy
+
+
+# Initialize SQLAlchemy
+db = SQLAlchemy()
 
 
 # User model
