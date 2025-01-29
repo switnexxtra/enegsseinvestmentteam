@@ -1,5 +1,5 @@
 from flask import Flask
-from models import db  # Import from the new extensions module
+from extensions import db  # Import from the new extensions module
 from flask_migrate import Migrate
 from blueprints.accounts.routes import accounts_blueprint, home
 from dotenv import load_dotenv
