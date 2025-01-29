@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "app/enegsseinvestmentteam.info/app.py",
+      "src": "app.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "app/enegsseinvestmentteam.info/app.py"
+      "dest": "app.py"
     }
   ],
   "env": {
