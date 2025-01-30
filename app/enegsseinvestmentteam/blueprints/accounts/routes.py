@@ -1,729 +1,432 @@
-from datetime import datetime
-import os
-from flask import Blueprint, render_template, session
-import random
-import psycopg2
-from sqlalchemy.exc import OperationalError
-from flask import render_template, request, url_for, redirect, jsonify, flash
-from flask_login import login_user, login_required, current_user, logout_user  # Assuming you're using Flask-Login for user sessions
-from extensions import login_manager  # Import from the new extensions module
-from models import db, User, Transaction, PaymentMethod, load_user  # Assuming your models are in a `models.py` file
+{% extends "base.html" %}
 
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
 
+                <li class="nav-item">
+                    <a class="nav-link" href="#payments">Payments</a>
+                </li>
 
-accounts_blueprint = Blueprint('accounts', __name__, static_folder='static', template_folder='templates')
-home = Blueprint('home', __name__, static_folder='static', template_folder='templates')
+                <li class="nav-item">
+                    <a class="nav-link" href="#users">Users</a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="#transactions">Transactions</a>
+                </li>
+                
+                <li class="nav-item">
+                    {% if current_user.is_authenticated %}
+                    <a class="nav-link text-danger" href="{{ url_for('accounts.logout') }}">Logout</a>
+                    {% else %}
+                    <a class="nav-link text-danger" href="{{ url_for('accounts.login') }}">Login</a>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container mt-5">
+    <h2 class="mb-4 text-center text-success">Admin Dashboard</h2>
 
-
-# conn = psycopg2.connect(database="postgres", host="localhost", user="", password="", port="5432")
-# cur = conn.cursor()
-
-@home.route('/')
-def index():
-    return render_template('accounts/login.html')
-
-# Hardcoded credentials
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-
-@accounts_blueprint.errorhandler(OperationalError)
-def handle_db_error(e):
-    flash("Sorry an error occurred. Please refresh and try again.", "error")
-    return jsonify({"error": "Sorry an error occurred. Please refresh and try again."}), 500
-
-
-
-@accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
-def login():
-    try:
-        if request.method == 'POST':
-            username_or_email = request.form.get('username')
-            password = request.form.get('password')
-
-            # Validate form input
-            if not username_or_email or not password:
-                flash("Please provide both username/email and password.", "danger")
-                return redirect(url_for('accounts.login'))
+    <!-- Section 1: Add Payment Method -->
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0">Add Payment Method</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('accounts.add_payment_method') }}">
+                <div class="mb-3">
+                    <label for="method_type" class="form-label">Payment Method Type</label>
+                    <select id="method_type" name="method_type" class="form-select" onchange="toggleMethodFields()" required>
+                        <option value="" disabled selected>Select</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cryptocurrency">Cryptocurrency</option>
+                    </select>
+                </div>
             
-            # Query the user by username or email
-            user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
-
-            if not user or not user.check_password(password):
-                flash("Invalid username/email or password.", "danger")
-                return redirect(url_for('accounts.login'))
-
-            if user.is_admin:
-                login_user(user)
-                flash("Admin Login successful!", "success")
-                return redirect(url_for('accounts.admin_dashboard'))
+                <!-- Bank Transfer Fields -->
+                <div id="bank_fields" class="mt-3" style="display: none;">
+                    <div class="mb-3">
+                        <label for="account_number" class="form-label">Account Number</label>
+                        <input type="text" id="account_number" name="account_number" class="form-control"
+                            placeholder="Enter bank account" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="bank_name" class="form-label">Bank Name</label>
+                        <input type="text" id="bank_name" name="bank_name" class="form-control" placeholder="Enter bank name" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="account_name" class="form-label">Account Name</label>
+                        <input type="text" id="account_name" name="account_name" class="form-control"
+                            placeholder="Enter bank name" />
+                    </div>
+                </div>
             
-            # Set session or login the user
-            login_user(user)
-            session['user_id'] = user.id
-            session['username'] = user.username
-            flash("Login successful!", "success")
+                <!-- Cryptocurrency Fields -->
+                <div id="crypto_fields" class="mt-3" style="display: none;">
+                    <div class="mb-3">
+                        <label for="sub_type" class="form-label">Cryptocurrency Type</label>
+                        <select id="sub_type" name="sub_type" class="form-select">
+                            <option value="" disabled selected>Select</option>
+                            <option value="USDT">USDT</option>
+                            <option value="BTC">BTC</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="wallet_address" class="form-label">Wallet Address</label>
+                        <input type="text" id="wallet_address" name="wallet_address" class="form-control"
+                            placeholder="Enter wallet address" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="memo" class="form-label">Memo</label>
+                        <input type="text" id="memo" name="memo" class="form-control" placeholder="Enter memo (if any)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="network_address" class="form-label">Network Address</label>
+                        <input type="text" id="network_address" name="network_address" class="form-control"
+                            placeholder="Enter network address" />
+                    </div>
+                </div>
+            
+                <button type="submit" class="btn btn-success mt-3">Add Payment Method</button>
+            </form>
 
-            # Redirect to the users.html page
-            return redirect(url_for('accounts.user_dashboard'))
-    except OperationalError:
-        flash("A temporary database issue occurred. Please refresh the page and try again.", "warning")
-        return redirect(url_for("accounts.login"))
-
-    # Render login form for GET requests
-    return render_template('accounts/login.html')
+        </div>
+    </div>
 
 
-
-@accounts_blueprint.route('/user/register', methods=['GET', 'POST'])
-def register():
-    return render_template('accounts/register.html')
-
-
-@accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
-def register_user():
-    try:
-        # Get form data
-        username = request.form.get('username')
-        email = request.form.get('email') or None  # Set email to None if empty
-        country = request.form.get('country')
-        mobile = request.form.get('mobile')
-        password = request.form.get('password')
-        password_confirmation = request.form.get('password_confirmation')
-
-        # Validate passwords match
-        if password != password_confirmation:
-            flash("Passwords do not match.", "danger")
-            print("Passwords do not match.", "danger")
-            return redirect(url_for('accounts.register'))  # Adjust if needed
-
-        # Check if the user already exists (ignoring email if None)
-        existing_user = User.query.filter(
-            (User.username == username) | 
-            (User.mobile == mobile) | 
-            ((User.email == email) if email else False)  # Check email only if provided
-        ).first()
-
-        if existing_user:
-            flash("User already exists with the given username or mobile number.", "danger")
-            print("User already exists.", "danger")
-            return redirect(url_for('accounts.register'))  # Adjust if needed
-
-        # Create a new user
-        new_user = User(
-            username=username,
-            email=email,  # Can be None
-            country=country,
-            mobile=mobile,
-            password=password  # Ensure hashing in the User model
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        flash("Account created successfully!", "success")
-        print("Account created successfully!", "success")
-        return redirect(url_for('accounts.login'))  # Adjust if needed
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f"An error occurred: {e}", "danger")
-        print(f"An error occurred: {e}", "danger")
-        return redirect(url_for('accounts.register'))  # Adjust if needed
-
-# @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
-# def register_user():
-#     print("registeration method called")
-#     try:
-#         # Get form data
-#         username = request.form.get('username')
-#         email = request.form.get('email')
-#         country = request.form.get('country')
-#         mobile = request.form.get('mobile')
-#         password = request.form.get('password')
-#         password_confirmation = request.form.get('password_confirmation')
-        
-#         # Validate passwords match
-#         if password != password_confirmation:
-#             flash("Passwords do not match.", "danger")
-#             print("Passwords do not match.", "danger")
-#             return redirect(url_for('register'))  # Replace 'register' with your registration form route
-
-#         # Check if the user already exists
-#         if User.query.filter((User.username == username) | (User.email == email) | (User.mobile == mobile)).first():
-#             flash("User already exists with the given username, email, or mobile number.", "danger")
-#             return redirect(url_for('register'))  # Replace 'register' with your registration form route
-
-#         # Create a new user
-#         new_user = User(
-#             username=username,
-#             email=email,
-#             country=country,
-#             mobile=mobile,
-#             password=password # Password will be hashed in the User model
-#         )
-#         db.session.add(new_user)
-#         db.session.commit()
-#         flash("Account created successfully!", "success")
-#         print("Account created successfully!", "success")
-#         return redirect(url_for('accounts.login'))  # Replace 'login' with your login route
+    <!-- Payment Method -->
+    <div class="card border-0 mt-4 mb-4">
+        <div class="card-header text-white shadow-sm">
+            <div class="card-header bg-danger text-white" id="payments">
+                <h5 class="mb-0">Payment Methods</h5>
+            </div>
+            <div class="card-body pl-0 pr-0">
+                <!-- Make the table responsive -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="bg-primary text-white">
+                            <tr>
+                                <th>Method Type</th>
+                                <th>Account Number</th>
+                                <th>Bank Name</th>
+                                <th>Account Name</th>
+                                <th>Wallet Address</th>
+                                <th>Memo</th>
+                                <th>Network Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method in payment_methods %}
+                            <tr>
+                                <td>{{ method.method_type }}</td>
+                                <td>{{ method.account_number }}</td>
+                                <td>{{ method.bank_name }}</td>
+                                <td>{{ method.account_name }}</td>
+                                <td>{{ method.wallet_address[:13] if method.wallet_address else '' }}</td>
+                                <td>{{ method.wallet_address[:13] if method.wallet_address else '' }}</td>
+                                <td>{{ method.network_address }}</td>
+                                <td>
+                                    <!-- Edit Button -->
+                                    <button class="btn btn-sm text-success" data-bs-toggle="modal"
+                                        data-bs-target="#editPaymentMethodModal" data-id="{{ method.id }}"
+                                        data-user-id="{{ method.user_id }}" data-method-type="{{ method.method_type }} "
+                                        data-account-number="{{ method.account_number }}"
+                                        data-bank-name="{{ method.bank_name }}"
+                                        data-account-name="{{ method.account_name }}" data-sub-type="{{ method.sub_type }}"
+                                        data-wallet-address="{{ method.wallet_address }}" data-memo="{{ method.memo }}"
+                                        data-network-address="{{ method.network_address }}">
+                                        <i class="bi bi-pencil"></i> <!-- Edit Icon -->
+                                    </button>
     
-#     except Exception as e:
-#         db.session.rollback()
-#         flash(f"An error occurred: {e}", "danger")
-#         print(f"An error occurred: {e}", "danger")
-#         return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
-    
-    
-    
-@accounts_blueprint.route('/register_now', methods=['GET', 'POST'])
-def register_now():
-    print("registeration method called")
-    try:
-        # Get form data
-        username = request.form.get('username')
-        email = request.form.get('email')
-        country = request.form.get('country')
-        mobile = request.form.get('mobile')
-        password = request.form.get('password')
-        password_confirmation = request.form.get('password_confirmation')
-        
-        
-        # Validate passwords match
-        if password != password_confirmation:
-            flash("Passwords do not match.", "danger")
-            print("Passwords do not match.", "danger")
-            return redirect(url_for('register'))  # Replace 'register' with your registration form route
-
-        # Check if the user already exists
-        if User.query.filter((User.username == username) | (User.email == email) | (User.mobile == mobile)).first():
-            flash("User already exists with the given username, email, or mobile number.", "danger")
-            return redirect(url_for('register'))  # Replace 'register' with your registration form route
-
-        # Create a new user
-        new_user = User(
-            username=username,
-            email=email,
-            country=country,
-            mobile=mobile,
-            password=password, # Password will be hashed in the User model
-            is_admin=True
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        flash("Account created successfully!", "success")
-        print("Account created successfully!", "success")
-        return redirect(url_for('accounts.login'))  # Replace 'login' with your login route
-    
-    except Exception as e:
-        db.session.rollback()
-        flash(f"An error occurred: {e}", "danger")
-        print(f"An error occurred: {e}", "danger")
-        return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
-    
-# @accounts_blueprint.route('/user-dashboard')
-# @login_required
-# def user_dashboard():
-#     # Retrieve the logged-in user's ID from the session
-#     user_id = session.get('user_id')
-    
-#     # Redirect to login if the user is not authenticated
-#     if not user_id:
-#         return redirect(url_for('accounts.login'))
-
-#     # Query the logged-in user's data
-#     user = User.query.get(user_id)
-
-#     # Check if the user exists in the database
-#     if not user:
-#         return redirect(url_for('accounts.login'))  # Additional safety check
-    
-#     # Extract financial information
-#     financials = {
-#         'account_balance': user.acc_balance,
-#         'total_investments': user.total_investment,
-#         'monthly_returns': user.monthly_return
-#     }
-    
-#      # Parse the transaction history from JSON if it exists
-#     # Query the user's transactions
-#     transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
-
-#     # Optional: Format transactions into a list of dicts for easier use in the template
-#     transaction_data = [
-#         {
-#             "date": t.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#             "description": f"Payment via {t.payment_method}",
-#             "amount": t.amount,
-#             "status": t.transaction_status
-#         }
-#         for t in transactions
-#     ]
-    
-#     # Fetch payment methods from the database
-#     payment_methods = PaymentMethod.query.all()
-#     payment_data = [
-#         {
-#             "id": method.id,
-#             "user_id": method.user_id,
-#             "method_type": method.method_type,
-#             "sub_type": method.sub_type,
-#             "wallet_address": method.wallet_address,
-#             "memo": method.memo,
-#             "network_address": method.network_address,
-#             "bank_name": method.bank_name,
-#             "account_number": method.account_number,
-#             "account_name": method.account_name,
-#         }
-#         for method in payment_methods
-#     ]
-
-
-
-#     return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_methods=payment_data, user_id=user_id)  # Ensure this file exists
-
-# @accounts_blueprint.route('/user-dashboard')
-# @login_required
-# def user_dashboard():
-#     # Retrieve the logged-in user's ID from the session
-#     user_id = session.get('user_id')
-    
-#     # Redirect to login if the user is not authenticated
-#     if not user_id:
-#         return redirect(url_for('accounts.login'))
-
-#     # Query the logged-in user's data
-#     user = User.query.get(user_id)
-
-#     # Check if the user exists in the database
-#     if not user:
-#         return redirect(url_for('accounts.login'))  # Additional safety check
-    
-#     # Extract financial information
-#     financials = {
-#         'account_balance': user.acc_balance,
-#         'total_investments': user.total_investment,
-#         'monthly_returns': user.monthly_return
-#     }
-    
-#     # Parse the transaction history from JSON if it exists
-#     # Query the user's transactions
-#     transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
-
-#     # Optional: Format transactions into a list of dicts for easier use in the template
-#     transaction_data = [
-#         {
-#             "date": t.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-#             "description": f"Payment via {t.payment_method}",
-#             "amount": t.amount,
-#             "status": t.transaction_status
-#         }
-#         for t in transactions
-#     ]
-    
-#     # Fetch payment methods from the database
-#     payment_methods = PaymentMethod.query.all()
-    
-#     # Filter payment methods into two categories: Bank Transfer and Crypto
-#     bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
-#     crypto_methods = [method for method in payment_methods if method.method_type == 'Cryptocurrency']
-    
-#     # Prepare the data to pass to the template
-#     payment_data = {
-#         'bank_method': random.choice(bank_methods) if bank_methods else None,  # Randomly select one bank method
-#         'crypto_methods': crypto_methods  # Keep all crypto methods available for display
-#     }
-
-#     return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_data=payment_data, user_id=user_id)
-
-
-@accounts_blueprint.route('/user-dashboard')
-@login_required
-def user_dashboard():
-    # Retrieve the logged-in user's ID from the session
-    user_id = session.get('user_id')
-    
-    # Redirect to login if the user is not authenticated
-    if not user_id:
-        return redirect(url_for('accounts.login'))
-
-    # Query the logged-in user's data
-    user = User.query.get(user_id)
-
-    # Check if the user exists in the database
-    if not user:
-        return redirect(url_for('accounts.login'))  # Additional safety check
-    
-    # Extract financial information
-    financials = {
-        'account_balance': user.acc_balance,
-        'total_investments': user.total_investment,
-        'monthly_returns': user.monthly_return
-    }
-    
-    # Parse the transaction history from JSON if it exists
-    # Query the user's transactions
-    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
-
-    # Optional: Format transactions into a list of dicts for easier use in the template
-    transaction_data = [
-        {
-            "date": t.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            "description": f"Payment via {t.payment_method}",
-            "amount": t.amount,
-            "status": t.transaction_status
-        }
-        for t in transactions
-    ]
-    
-    # Fetch payment methods from the database
-    payment_methods = PaymentMethod.query.all()
-    
-    # Filter payment methods into two categories: Bank Transfer and Crypto
-    # bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
-    bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
-    crypto_methods = [method for method in payment_methods if method.method_type == 'Cryptocurrency']
-    # print("Bank Transfer Methods:")
-    # for method in bank_methods:
-    #     print(f"- {method.method_type}: {method.bank_name}, {method.account_number}")
-
-    # print("\nCryptocurrency Methods:")
-    # for method in crypto_methods:
-    #     print(f"- {method.method_type}: {method.sub_type}")
+                                    <!-- Delete Button -->
+                                    <form action="{{ url_for('accounts.delete_payment_method', method_id=method.id) }}"
+                                        method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm text-danger">
+                                            <i class="bi bi-trash"></i> <!-- Delete Icon -->
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     
-    # Filter crypto methods by 'sub_type' (BTC or USDT)
-    btc_methods = [method for method in crypto_methods if method.sub_type == 'BTC']
-    usdt_methods = [method for method in crypto_methods if method.sub_type == 'USDT']
+    <!-- Edit Payment Method Modal -->
+    <div class="modal fade" id="editPaymentMethodModal" tabindex="-1" aria-labelledby="editPaymentMethodModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="{{ url_for('accounts.edit_payment_method') }}" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editPaymentMethodModalLabel">Edit Payment Method</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <strong>Please Don't fill all. only fill neccessery once</strong>
+                        </div>
+                        <input type="hidden" name="method_id" id="methodId">
+                        <div class="mb-3">
+                            <label for="methodType" class="form-label">Method Type</label>
+                            <input type="text" class="form-control" id="methodType" name="method_type" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accountNumber" class="form-label">Account Number</label>
+                            <input type="text" class="form-control" id="accountNumber" name="account_number">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bankName" class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" id="bankName" name="bank_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="accountName" class="form-label">Account Name</label>
+                            <input type="text" class="form-control" id="accountName" name="account_name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="walletAddress" class="form-label">Wallet Address</label>
+                            <input type="text" class="form-control" id="walletAddress" name="wallet_address">
+                        </div>
+                        <div class="mb-3">
+                            <label for="memo" class="form-label">Memo</label>
+                            <input type="text" class="form-control" id="memo" name="memo">
+                        </div>
+                        <div class="mb-3">
+                            <label for="networkAddress" class="form-label">Network Address</label>
+                            <input type="text" class="form-control" id="networkAddress" name="network_address">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Users Table -->
+    <div class="card shadow-sm border-0 mt-4 mb-4">
+        <div class="card-header bg-success text-white" id="users">
+            <h5 class="mb-0">Users</h5>
+        </div>
+        <div class="card-body" >
+            <table class="table table-hover table-bordered mt-3 table-responsive">
+                <thead class="text-white" style="background-color: #007bff;">
+                    <tr>
+                        <th>ID</th>
+                        <th>Email</th>
+                        <th>Username</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>
+                            <i class="bi bi-pencil text-primary me-2" style="cursor: pointer;" title="Edit"></i>
+                            <i class="bi bi-chat text-success me-2" style="cursor: pointer;" title="Message"></i>
+                            <i class="bi bi-trash text-danger" style="cursor: pointer;" title="Delete"></i>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     
-    # Prepare the data to pass to the template
-    payment_data = {
-        'bank_method': random.choice(bank_methods) if bank_methods else None,  # Randomly select one bank method
-        'btc_method': random.choice(btc_methods) if btc_methods else None,  # Randomly select one BTC method
-        'usdt_method': random.choice(usdt_methods) if usdt_methods else None,  # Randomly select one USDT method
+    <!-- Transactions Table -->
+    <div class="card shadow-sm border-0 mt-4 mb-4">
+        <div class="card-header text-white" style="background-color: #6c757d;" id="transactions">
+            <h5 class="mb-0">Transactions</h5>
+        </div>
+        <div class="card-body" >
+            <table class="table table-hover table-bordered mt-3">
+                <thead class="text-white bg-primary">
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.id }}</td>
+                        <td>{{ transaction.user.username }}</td>
+                        <td>PGK {{ transaction.amount }}</td>
+                        <td>
+                            {% if transaction.transaction_status == 'Completed' %}
+                            <span class="badge bg-success text-white">Completed</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <!-- Modal Trigger Button -->
+                            <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#editModal" onclick="populateModal('{{ transaction.user.id }}', '{{ transaction.id }}', '{{ transaction.user.acc_balance }}', 
+                                                                   '{{ transaction.user.total_investment }}', '{{ transaction.user.monthly_return }}', 
+                                                                   '{{ transaction.transaction_status }}')">
+                                <i class="bi bi-pencil text-primary"></i> <!-- Edit Icon -->
+                            </button>
+                            <!-- Delete Button -->
+                            <form method="POST" action="{{ url_for('accounts.delete_transaction', transaction_id=transaction.id) }}" style="display:inline;">
+                                <button type="submit" class="btn"
+                                    onclick="return confirm('Are you sure you want to delete this transaction?')">
+                                    <i class="bi bi-trash text-danger"></i> <!-- Trash Icon -->
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Edit Transaction Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{ url_for('accounts.edit_transaction') }}">
+                        <!-- Hidden input for user_id -->
+                        <input type="hidden" name="user_id" id="user_id" value="">
+                        <!-- Hidden input for transaction_id -->
+                        <input type="hidden" name="transaction_id" id="transaction_id" value="">
+    
+                        <!-- User Data Fields -->
+                        <div class="mb-3">
+                            <label for="acc_balance" class="form-label">Account Balance</label>
+                            <input type="number" step="0.01" class="form-control" id="acc_balance" name="acc_balance">
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_investment" class="form-label">Total Investment</label>
+                            <input type="number" step="0.01" class="form-control" id="total_investment"
+                                name="total_investment">
+                        </div>
+                        <div class="mb-3">
+                            <label for="monthly_return" class="form-label">Monthly Return</label>
+                            <input type="number" step="0.01" class="form-control" id="monthly_return" name="monthly_return">
+                        </div>
+    
+                        <!-- Transaction Status Field -->
+                        <div class="mb-3">
+                            <label for="transaction_status" class="form-label">Transaction Status</label>
+                            <select class="form-select" id="transaction_status" name="transaction_status">
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+    
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    function toggleMethodFields() {
+        const methodType = document.getElementById('method_type').value;
+        document.getElementById('bank_fields').style.display = methodType === 'Bank Transfer' ? 'block' : 'none';
+        document.getElementById('crypto_fields').style.display = methodType === 'Cryptocurrency' ? 'block' : 'none';
     }
 
-    return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_data=payment_data, user_id=user_id)
+    document.addEventListener("DOMContentLoaded", function () {
+        const editModal = document.getElementById('editPaymentMethodModal');
+
+        editModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            const button = event.relatedTarget;
+
+            // Extract data attributes from the button
+            const methodId = button.getAttribute('data-id');
+            const userId = button.getAttribute('data-user-id');
+            const methodType = button.getAttribute('data-method-type');
+            const accountNumber = button.getAttribute('data-account-number');
+            const bankName = button.getAttribute('data-bank-name');
+            const accountName = button.getAttribute('data-account-name');
+            const subType = button.getAttribute('data-sub-type');
+            const walletAddress = button.getAttribute('data-wallet-address');
+            const memo = button.getAttribute('data-memo');
+            const networkAddress = button.getAttribute('data-network-address');
+
+            // Update modal fields
+            editModal.querySelector('#methodId').value = methodId;
+            editModal.querySelector('#methodType').value = methodType || '';
+            editModal.querySelector('#accountNumber').value = accountNumber || '';
+            editModal.querySelector('#bankName').value = bankName || '';
+            editModal.querySelector('#accountName').value = accountName || '';
+            editModal.querySelector('#walletAddress').value = walletAddress || '';
+            editModal.querySelector('#memo').value = memo || '';
+            editModal.querySelector('#networkAddress').value = networkAddress || '';
+        });
+    });
+
+   
+
+
+    function populateModal(userId, transactionId) {
+        fetch(`/accounts/get_user/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Populate user information
+                document.getElementById('userId').value = data.id;
+
+                // Find the specific transaction
+                const transaction = data.transactions.find(tx => tx.id === transactionId);
+                if (transaction) {
+                    document.getElementById('transaction_id').value = transaction.id;
+                    document.getElementById('transaction_status').value = transaction.transaction_status;
+                }
+            });
+    }
+
 
     
-@accounts_blueprint.route('/new_transaction', methods=['POST'])
-def add_new_transaction():
-    amount = request.form.get('amount')
-    payment_method = request.form.get('payment_method')
-    recipient_details = request.form.get('recipient_details')
 
-    print(f"Amount: {amount}, Payment Method: {payment_method}, Recipient Details: {recipient_details}")
-    if not amount or not payment_method:
-        flash("All fields are required!", "danger")
-        return redirect(url_for('accounts.user_dashboard'))
-    
-    if not recipient_details:
-        recipient_details = f"Payment Via: {payment_method}"
-        
+    function populateModal(userId, transactionId, accBalance, totalInvestment, monthlyReturn, transactionStatus) {
+        // Set the user_id and transaction_id dynamically when the button is clicked
+        document.getElementById('user_id').value = userId;
+        document.getElementById('transaction_id').value = transactionId;
 
-    # Fetch the current user's ID from session
-    user_id = session.get('user_id')
-    
-    # Fetch the user based on the user_id
-    user = User.query.get(user_id)
-    
-    # Get the current date and time
-    now = datetime.now()
-    try:
-        # Create a new transaction
-        transaction = Transaction(
-            user_id=user.id,
-            amount=float(amount),
-            payment_method=payment_method,
-            recipient_details=recipient_details,
-            transaction_status='pending',  # Mark as pending
-        )
+        // Set the user fields in the modal
+        document.getElementById('acc_balance').value = accBalance;
+        document.getElementById('total_investment').value = totalInvestment;
+        document.getElementById('monthly_return').value = monthlyReturn;
 
-        db.session.add(transaction)
-        db.session.commit()
+        // Set the transaction status field in the modal
+        document.getElementById('transaction_status').value = transactionStatus;
+    }
 
-        flash("Transaction recorded successfully. Await verification.", "success")
-    except Exception as e:
-        print(e)
-        db.session.rollback()
-        flash("An error occurred while processing your transaction.", "danger")
-
-    return redirect(url_for('accounts.user_dashboard'))
-
-
-@accounts_blueprint.route('/withdraw', methods=['POST'])
-def withdraw():
-    # Get data from the form
-    account_name = request.form.get('accountName')
-    account_number = request.form.get('accountNumber')
-    bank_name = request.form.get('bankName')
-    withdraw_amount = request.form.get('withdrawAmount')
-
-    # Check if withdraw_amount is not None and convert it to float
-    if withdraw_amount is not None:
-        withdraw_amount = float(withdraw_amount)
-    else:
-        flash("Withdrawal amount is required.", "danger")
-        return redirect(url_for('accounts.withdraw'))
-
-    # Fetch the current user's ID from session
-    user_id = session.get('user_id')
-
-    if not user_id:
-        flash("You need to log in first.", "danger")
-        return redirect(url_for('accounts.login'))
-
-    # Fetch the user based on the user_id
-    user = User.query.get(user_id)
-    if user is None:
-        flash("User not found.", "danger")
-        return redirect(url_for('accounts.login'))
-
-    # Check if the withdrawal amount is valid (less than or equal to the balance)
-    if withdraw_amount <= user.acc_balance:
-        # Create a new transaction
-        new_transaction = Transaction(
-            user_id=user.id,
-            amount=withdraw_amount,
-            payment_method='bank',  # Assuming bank is the payment method for withdrawals
-            recipient_details=f"Account Name: {account_name}, Account Number: {account_number}, Bank Name: {bank_name}"
-        )
-        
-        # Update the user's account balance
-        user.acc_balance -= withdraw_amount
-        
-        # Add the transaction to the database
-        db.session.add(new_transaction)
-        db.session.commit()
-        
-        # Add transaction history to the User model (optional)
-        user.add_transaction({
-            'transaction_type': 'withdrawal',
-            'amount': withdraw_amount,
-            'status': 'completed',
-            'recipient_details': f"{account_name}, {account_number}, {bank_name}"
-        })
-        db.session.commit()
-
-        flash("Withdrawal successfully processed!", "success")
-    else:
-        flash("Insufficient balance to withdraw this amount.", "danger")
-
-    return redirect(url_for('accounts.user_dashboard'))  # Redirect to the dashboard or any other page
-
-
-@accounts_blueprint.route('/profile', methods=['GET'])
-@login_required
-def profile():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    return jsonify({
-        'first_name': user.username,  # Replace with actual field if different
-        'last_name': user.country,    # Replace with actual field if different
-        'email': user.email,
-        'phone': user.mobile
-    })
-
-
-@accounts_blueprint.route('/logout', methods=['GET'])
-@login_required
-def logout():
-    logout_user()
-    session.clear()
-    flash("You have successfully logged out.", "success")
-    return redirect(url_for('accounts.login'))
-
-@accounts_blueprint.route('/admin', methods=['GET', 'POST'])
-@login_required
-def admin_dashboard():
-    # Fetch all users from the database
-    users = User.query.all()
-    
-    # Fetch all payment methods from the database
-    payment_methods = PaymentMethod.query.all()
-
-    # Fetch all transactions from the database
-    transactions = Transaction.query.all()
-
-    return render_template('accounts/admin_dashboard.html', users=users, payment_methods=payment_methods, transactions=transactions)
+</script>
 
 
 
-@accounts_blueprint.route('/add_payment_method', methods=['GET', 'POST'])
-@login_required
-def add_payment_method():
-    if request.method == 'POST':
-        method_type = request.form.get('method_type')
-        
-        # Get the logged-in user's ID (using session or Flask-Login)
-        user_id = session.get('user_id')  # Assuming user_id is stored in session
-        # Get the logged-in user's ID
-        user_id = current_user.id  # Flask-Login provides `current_user`
-        if not user_id:
-            flash('You must be logged in to add a payment method.', 'error')
-            return redirect('accounts.login')
-
-        # Conditional fields
-        if method_type == 'Bank Transfer':
-            account_number = request.form.get('account_number')
-            bank_name = request.form.get('bank_name')
-            account_name = request.form.get('account_name')
-            sub_type = wallet_address = memo = network_address = None
-        elif method_type == 'Cryptocurrency':
-            account_number = bank_name = account_name = None
-            sub_type = request.form.get('sub_type')
-            wallet_address = request.form.get('wallet_address')
-            memo = request.form.get('memo')
-            network_address = request.form.get('network_address')
-        else:
-            flash('Invalid payment method type selected!', 'error')
-            return redirect('accounts.admin_dashboard')
-
-        # Save to database
-        payment_method = PaymentMethod(
-            user_id=user_id,  # Associate the payment method with the logged-in user
-            method_type=method_type,
-            account_number=account_number,
-            bank_name=bank_name,
-            account_name=account_name,
-            sub_type=sub_type,
-            wallet_address=wallet_address,
-            memo=memo,
-            network_address=network_address
-        )
-        db.session.add(payment_method)
-        db.session.commit()
-        flash('Payment method added successfully!', 'success')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    return render_template('accounts/admin_dashboard.html')
-
-@accounts_blueprint.route('/edit-payment-method', methods=['POST'])
-def edit_payment_method():
-    method_id = request.form.get('method_id')
-    payment_method = PaymentMethod.query.get(method_id)
-
-    if payment_method:
-        payment_method.method_type = request.form.get('method_type')
-        payment_method.account_number = request.form.get('account_number')
-        payment_method.bank_name = request.form.get('bank_name')
-        payment_method.account_name = request.form.get('account_name')
-        payment_method.wallet_address = request.form.get('wallet_address')
-        payment_method.memo = request.form.get('memo')
-        payment_method.network_address = request.form.get('network_address')
-        db.session.commit()
-        flash('Payment method updated successfully!', 'success')
-    else:
-        flash('Payment method not found!', 'error')
-
-    return redirect(url_for('accounts.admin_dashboard'))
-
-
-
-@accounts_blueprint.route('/delete-payment-method/<int:method_id>', methods=['POST'])
-def delete_payment_method(method_id):
-    payment_method = PaymentMethod.query.get(method_id)
-
-    if payment_method:
-        db.session.delete(payment_method)
-        db.session.commit()
-        flash('Payment method deleted successfully!', 'success')
-    else:
-        flash('Payment method not found!', 'error')
-
-    return redirect(url_for('accounts.admin_dashboard'))
-
-
-
-
-from flask import request, redirect, url_for, flash
-from sqlalchemy.exc import SQLAlchemyError
-@accounts_blueprint.route('/edit_transaction', methods=['POST'])
-def edit_transaction():
-    
-    try:
-        # Get the data from the form
-        user_id = request.form.get('user_id')
-        transaction_id = request.form.get('transaction_id')
-        acc_balance = float(request.form.get('acc_balance'))
-        total_investment = float(request.form.get('total_investment'))
-        monthly_return = float(request.form.get('monthly_return'))
-        transaction_status = request.form.get('transaction_status')
-
-        # Find the user and the transaction
-        user = User.query.get(user_id)
-        transaction = Transaction.query.get(transaction_id)
-
-        if not user or not transaction:
-            flash('User or Transaction not found', 'danger')
-            return redirect(url_for('accounts.admin_dashboard'))
-
-        # Update user balance, investment, and return
-        user.acc_balance = acc_balance
-        user.total_investment = total_investment
-        user.monthly_return = monthly_return
-
-        # Update the transaction status
-        transaction.transaction_status = transaction_status
-
-        # Commit the changes to the database
-        db.session.commit()
-
-        flash('Transaction and user details updated successfully', 'success')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        flash('An error occurred while updating the transaction. Please try again.', 'danger')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-# @accounts_blueprint.route('/edit_transaction', methods=['POST'])
-@accounts_blueprint.route('/delete_transaction/<int:transaction_id>', methods=['POST'])
-def delete_transaction(transaction_id):
-    # Fetch the transaction using the transaction_id
-    transaction = Transaction.query.get(transaction_id)
-    
-    if transaction:
-        # Optionally, if you want to perform additional logic (e.g., updating user balances)
-        user = transaction.user
-        # For example, if needed, you can adjust the user's balances
-        user.acc_balance -= transaction.amount  # Example: Subtract the amount of the transaction from the user's balance
-        db.session.commit()
-        
-        # Delete the transaction
-        db.session.delete(transaction)
-        db.session.commit()
-
-        # Flash success message
-        flash('Transaction deleted successfully!', 'success')
-    else:
-        # Flash error message if transaction is not found
-        flash('Transaction not found!', 'danger')
-
-    # Redirect back to the transactions page
-    return redirect(url_for('accounts.admin_dashboard'))
-
-
-
-@accounts_blueprint.route('/edit_user', methods=['POST'])
-def edit_user():
-    user_id = request.form.get('user_id')
-    user = User.query.get_or_404(user_id)
-
-    # Update user details
-    user.acc_balance = float(request.form.get('acc_balance'))
-    user.total_investment = float(request.form.get('total_investment'))
-    user.monthly_return = float(request.form.get('monthly_return'))
-
-    # Update specific transaction based on transaction_id
-    transaction_id = request.form.get('transaction_id')
-    if transaction_id:
-        transaction = Transaction.query.get_or_404(transaction_id)
-        transaction.transaction_status = request.form.get('transaction_status')
-    
-    db.session.commit()
-    flash("User details and transaction status updated successfully!", "success")
-    return redirect(url_for('accounts.admin_dashboard'))
+{% endblock %}
