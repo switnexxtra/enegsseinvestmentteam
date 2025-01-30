@@ -100,12 +100,12 @@
 
 
     <!-- Payment Method -->
-    <div class="card border-0 mt-4 mb-4" id="payments">
+    <div class="card border-0 mt-4 mb-4">
         <div class="card-header text-white shadow-sm">
-            <div class="card-header bg-danger text-white">
+            <div class="card-header bg-danger text-white" id="payments">
                 <h5 class="mb-0">Payment Methods</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body pl-0 pr-0">
                 <!-- Make the table responsive -->
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -128,8 +128,8 @@
                                 <td>{{ method.account_number }}</td>
                                 <td>{{ method.bank_name }}</td>
                                 <td>{{ method.account_name }}</td>
-                                <td>{{ method.wallet_address[:13] }}</td>
-                                <td>{{ method.memo[:13] }}</td>
+                                <td>{{ method.wallet_address[:13] if method.wallet_address else '' }}</td>
+                                <td>{{ method.wallet_address[:13] if method.wallet_address else '' }}</td>
                                 <td>{{ method.network_address }}</td>
                                 <td>
                                     <!-- Edit Button -->
@@ -217,11 +217,11 @@
 
     <!-- Section 2: Users Table -->
     <div class="card shadow-sm border-0 mt-4 mb-4">
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success text-white" id="users">
             <h5 class="mb-0">Users</h5>
         </div>
-        <div class="card-body" id="users">
-            <table class="table table-hover table-bordered mt-3">
+        <div class="card-body" >
+            <table class="table table-hover table-bordered mt-3 table-responsive">
                 <thead class="text-white" style="background-color: #007bff;">
                     <tr>
                         <th>ID</th>
@@ -250,10 +250,10 @@
     
     <!-- Transactions Table -->
     <div class="card shadow-sm border-0 mt-4 mb-4">
-        <div class="card-header text-white" style="background-color: #6c757d;">
+        <div class="card-header text-white" style="background-color: #6c757d;" id="transactions">
             <h5 class="mb-0">Transactions</h5>
         </div>
-        <div class="card-body" id="transactions">
+        <div class="card-body" >
             <table class="table table-hover table-bordered mt-3">
                 <thead class="text-white bg-primary">
                     <tr>
