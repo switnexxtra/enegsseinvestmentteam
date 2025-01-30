@@ -38,54 +38,83 @@ def register():
     return render_template('accounts/register.html')
 
 
+# @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
+# def register_user():
+#     if request.method == 'POST':
+#         username = request.form['username']
+#         email = request.form['email']
+#         country = request.form['country']
+#         mobile = request.form['mobile']
+#         password = request.form['password']
+
+#         if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
+#             flash('Username or email already exists!', 'danger')
+#             return redirect(url_for('accounts.register_user'))
+
+#         new_user = User(username=username, email=email, country=country, mobile=mobile, password_hash=generate_password_hash(password))
+#         db.session.add(new_user)
+#         db.session.commit()
+#         flash('Account created successfully! Please login.', 'success')
+#         return redirect(url_for('accounts.login'))
+#     return render_template('accounts/register.html')
+
+
 @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
 def register_user():
-    try:
-        if request.method == 'POST':
-            username = request.form['username']
-            email = request.form['email']
-            country = request.form['country']
-            mobile = request.form['mobile']
-            password = request.form['password']
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form.get('email')  # Use `.get()` to handle missing input
+        country = request.form['country']
+        mobile = request.form['mobile']
+        password = request.form['password']
 
-            if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
-                flash('Username or email already exists!', 'danger')
-                return redirect(url_for('accounts.register_user'))
+        # Check if username already exists
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists!', 'danger')
+            return redirect(url_for('accounts.register_user'))
 
-            new_user = User(username=username, email=email, country=country, mobile=mobile, password_hash=generate_password_hash(password))
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Account created successfully! Please login.', 'success')
-            return redirect(url_for('accounts.login'))
-    except Exception as e:
-        flash(f"An error occurred: {e}", "danger")
-        return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
+        # Check if email exists ONLY IF the user provided one
+        if email and User.query.filter_by(email=email).first():
+            flash('Email already exists!', 'danger')
+            return redirect(url_for('accounts.register_user'))
+
+        # Create new user without requiring email
+        new_user = User(
+            username=username, 
+            email=email if email else None,  # Store None if no email is provided
+            country=country, 
+            mobile=mobile, 
+            password_hash=generate_password_hash(password)
+        )
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully! Please login.', 'success')
+        return redirect(url_for('accounts.login'))
+
     return render_template('accounts/register.html')
 
 
 @accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
 def login():
-    try:
-        if request.method == 'POST':
-            username = request.form['username']
-            password = request.form['password']
-            user = User.query.filter_by(username=username).first()
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            # Redirect admin users to the admin dashboard
+            if user.is_admin:
+                return redirect(url_for('accounts.admin_dashboard'))  # Replace with the correct route
             
-            if user and user.check_password(password):
-                login_user(user)
-                # Redirect admin users to the admin dashboard
-                if user.is_admin:
-                    return redirect(url_for('accounts.admin_dashboard'))  # Replace with the correct route
-                
-                flash('Login successful!', 'success')
-                return redirect(url_for('accounts.user_dashboard'))
-            else:
-                flash('Invalid username or password!', 'danger')
-                return redirect(url_for('accounts.login'))
-    except Exception as e:
-        flash(f"An error occurred: {e}", "danger")
-        return redirect(url_for('accounts.login'))  # Replace 'register' with your registration form route
-    
+            flash('Login successful!', 'success')
+            return redirect(url_for('accounts.user_dashboard'))
+        else:
+            flash('Invalid username or password!', 'danger')
+            return redirect(url_for('accounts.login'))
+        
     # Render login form for GET requests
     return render_template('accounts/login.html')
 
@@ -304,11 +333,12 @@ def withdraw():
 @accounts_blueprint.route('/profile', methods=['GET'])
 @login_required
 def profile():
-    user_id = session.get('user_id')
+    user = current_user
+    user_id = user.id
     if not user_id:
         return jsonify({'error': 'User not logged in'}), 401
 
-    user = User.query.get(user_id)
+   
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
