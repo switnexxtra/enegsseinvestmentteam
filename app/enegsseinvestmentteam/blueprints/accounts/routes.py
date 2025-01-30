@@ -1,13 +1,14 @@
 from datetime import datetime
-import json
 import os
-from flask import Blueprint, app, render_template, session
+from flask import Blueprint, render_template, session
+import random
 import psycopg2
 from sqlalchemy.exc import OperationalError
 from flask import render_template, request, url_for, redirect, jsonify, flash
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_required, current_user  # Assuming you're using Flask-Login for user sessions
-from models import db, User, Transaction,PaymentMethod  # Assuming your models are in a `models.py` file
+from flask_login import login_user, login_required, current_user, logout_user  # Assuming you're using Flask-Login for user sessions
+from extensions import login_manager  # Import from the new extensions module
+from models import db, User, Transaction, PaymentMethod, load_user  # Assuming your models are in a `models.py` file
+
 
 
 accounts_blueprint = Blueprint('accounts', __name__, static_folder='static', template_folder='templates')
@@ -21,14 +22,16 @@ home = Blueprint('home', __name__, static_folder='static', template_folder='temp
 def index():
     return render_template('accounts/login.html')
 
-
 # Hardcoded credentials
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
 @accounts_blueprint.errorhandler(OperationalError)
 def handle_db_error(e):
-    return jsonify({"error": "A database connection error occurred. Please refresh and try again."}), 500
+    flash("Sorry an error occurred. Please refresh and try again.", "error")
+    return jsonify({"error": "Sorry an error occurred. Please refresh and try again."}), 500
+
+
 
 @accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
 def login():
@@ -50,10 +53,12 @@ def login():
                 return redirect(url_for('accounts.login'))
 
             if user.is_admin:
+                login_user(user)
                 flash("Admin Login successful!", "success")
                 return redirect(url_for('accounts.admin_dashboard'))
             
             # Set session or login the user
+            login_user(user)
             session['user_id'] = user.id
             session['username'] = user.username
             flash("Login successful!", "success")
@@ -213,7 +218,124 @@ def register_now():
         print(f"An error occurred: {e}", "danger")
         return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
     
+# @accounts_blueprint.route('/user-dashboard')
+# @login_required
+# def user_dashboard():
+#     # Retrieve the logged-in user's ID from the session
+#     user_id = session.get('user_id')
+    
+#     # Redirect to login if the user is not authenticated
+#     if not user_id:
+#         return redirect(url_for('accounts.login'))
+
+#     # Query the logged-in user's data
+#     user = User.query.get(user_id)
+
+#     # Check if the user exists in the database
+#     if not user:
+#         return redirect(url_for('accounts.login'))  # Additional safety check
+    
+#     # Extract financial information
+#     financials = {
+#         'account_balance': user.acc_balance,
+#         'total_investments': user.total_investment,
+#         'monthly_returns': user.monthly_return
+#     }
+    
+#      # Parse the transaction history from JSON if it exists
+#     # Query the user's transactions
+#     transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
+
+#     # Optional: Format transactions into a list of dicts for easier use in the template
+#     transaction_data = [
+#         {
+#             "date": t.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+#             "description": f"Payment via {t.payment_method}",
+#             "amount": t.amount,
+#             "status": t.transaction_status
+#         }
+#         for t in transactions
+#     ]
+    
+#     # Fetch payment methods from the database
+#     payment_methods = PaymentMethod.query.all()
+#     payment_data = [
+#         {
+#             "id": method.id,
+#             "user_id": method.user_id,
+#             "method_type": method.method_type,
+#             "sub_type": method.sub_type,
+#             "wallet_address": method.wallet_address,
+#             "memo": method.memo,
+#             "network_address": method.network_address,
+#             "bank_name": method.bank_name,
+#             "account_number": method.account_number,
+#             "account_name": method.account_name,
+#         }
+#         for method in payment_methods
+#     ]
+
+
+
+#     return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_methods=payment_data, user_id=user_id)  # Ensure this file exists
+
+# @accounts_blueprint.route('/user-dashboard')
+# @login_required
+# def user_dashboard():
+#     # Retrieve the logged-in user's ID from the session
+#     user_id = session.get('user_id')
+    
+#     # Redirect to login if the user is not authenticated
+#     if not user_id:
+#         return redirect(url_for('accounts.login'))
+
+#     # Query the logged-in user's data
+#     user = User.query.get(user_id)
+
+#     # Check if the user exists in the database
+#     if not user:
+#         return redirect(url_for('accounts.login'))  # Additional safety check
+    
+#     # Extract financial information
+#     financials = {
+#         'account_balance': user.acc_balance,
+#         'total_investments': user.total_investment,
+#         'monthly_returns': user.monthly_return
+#     }
+    
+#     # Parse the transaction history from JSON if it exists
+#     # Query the user's transactions
+#     transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
+
+#     # Optional: Format transactions into a list of dicts for easier use in the template
+#     transaction_data = [
+#         {
+#             "date": t.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+#             "description": f"Payment via {t.payment_method}",
+#             "amount": t.amount,
+#             "status": t.transaction_status
+#         }
+#         for t in transactions
+#     ]
+    
+#     # Fetch payment methods from the database
+#     payment_methods = PaymentMethod.query.all()
+    
+#     # Filter payment methods into two categories: Bank Transfer and Crypto
+#     bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
+#     crypto_methods = [method for method in payment_methods if method.method_type == 'Cryptocurrency']
+    
+#     # Prepare the data to pass to the template
+#     payment_data = {
+#         'bank_method': random.choice(bank_methods) if bank_methods else None,  # Randomly select one bank method
+#         'crypto_methods': crypto_methods  # Keep all crypto methods available for display
+#     }
+
+#     return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_data=payment_data, user_id=user_id)
+
+
 @accounts_blueprint.route('/user-dashboard')
+@login_required
 def user_dashboard():
     # Retrieve the logged-in user's ID from the session
     user_id = session.get('user_id')
@@ -236,7 +358,7 @@ def user_dashboard():
         'monthly_returns': user.monthly_return
     }
     
-     # Parse the transaction history from JSON if it exists
+    # Parse the transaction history from JSON if it exists
     # Query the user's transactions
     transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
 
@@ -253,26 +375,32 @@ def user_dashboard():
     
     # Fetch payment methods from the database
     payment_methods = PaymentMethod.query.all()
-    payment_data = [
-        {
-            "id": method.id,
-            "user_id": method.user_id,
-            "method_type": method.method_type,
-            "sub_type": method.sub_type,
-            "wallet_address": method.wallet_address,
-            "memo": method.memo,
-            "network_address": method.network_address,
-            "bank_name": method.bank_name,
-            "account_number": method.account_number,
-            "account_name": method.account_name,
-        }
-        for method in payment_methods
-    ]
+    
+    # Filter payment methods into two categories: Bank Transfer and Crypto
+    # bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
+    bank_methods = [method for method in payment_methods if method.method_type == 'Bank Transfer']
+    crypto_methods = [method for method in payment_methods if method.method_type == 'Cryptocurrency']
+    # print("Bank Transfer Methods:")
+    # for method in bank_methods:
+    #     print(f"- {method.method_type}: {method.bank_name}, {method.account_number}")
 
+    # print("\nCryptocurrency Methods:")
+    # for method in crypto_methods:
+    #     print(f"- {method.method_type}: {method.sub_type}")
 
+    
+    # Filter crypto methods by 'sub_type' (BTC or USDT)
+    btc_methods = [method for method in crypto_methods if method.sub_type == 'BTC']
+    usdt_methods = [method for method in crypto_methods if method.sub_type == 'USDT']
+    
+    # Prepare the data to pass to the template
+    payment_data = {
+        'bank_method': random.choice(bank_methods) if bank_methods else None,  # Randomly select one bank method
+        'btc_method': random.choice(btc_methods) if btc_methods else None,  # Randomly select one BTC method
+        'usdt_method': random.choice(usdt_methods) if usdt_methods else None,  # Randomly select one USDT method
+    }
 
-    return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_methods=payment_data, user_id=user_id)  # Ensure this file exists
-
+    return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_data=payment_data, user_id=user_id)
 
     
 @accounts_blueprint.route('/new_transaction', methods=['POST'])
@@ -281,9 +409,14 @@ def add_new_transaction():
     payment_method = request.form.get('payment_method')
     recipient_details = request.form.get('recipient_details')
 
-    if not amount or not payment_method or not recipient_details:
+    print(f"Amount: {amount}, Payment Method: {payment_method}, Recipient Details: {recipient_details}")
+    if not amount or not payment_method:
         flash("All fields are required!", "danger")
         return redirect(url_for('accounts.user_dashboard'))
+    
+    if not recipient_details:
+        recipient_details = f"Payment Via: {payment_method}"
+        
 
     # Fetch the current user's ID from session
     user_id = session.get('user_id')
@@ -377,6 +510,7 @@ def withdraw():
 
 
 @accounts_blueprint.route('/profile', methods=['GET'])
+@login_required
 def profile():
     user_id = session.get('user_id')
     if not user_id:
@@ -395,12 +529,15 @@ def profile():
 
 
 @accounts_blueprint.route('/logout', methods=['GET'])
+@login_required
 def logout():
+    logout_user()
     session.clear()
     flash("You have successfully logged out.", "success")
     return redirect(url_for('accounts.login'))
 
 @accounts_blueprint.route('/admin', methods=['GET', 'POST'])
+@login_required
 def admin_dashboard():
     # Fetch all users from the database
     users = User.query.all()
@@ -416,12 +553,15 @@ def admin_dashboard():
 
 
 @accounts_blueprint.route('/add_payment_method', methods=['GET', 'POST'])
+@login_required
 def add_payment_method():
     if request.method == 'POST':
         method_type = request.form.get('method_type')
         
         # Get the logged-in user's ID (using session or Flask-Login)
         user_id = session.get('user_id')  # Assuming user_id is stored in session
+        # Get the logged-in user's ID
+        user_id = current_user.id  # Flask-Login provides `current_user`
         if not user_id:
             flash('You must be logged in to add a payment method.', 'error')
             return redirect('accounts.login')
