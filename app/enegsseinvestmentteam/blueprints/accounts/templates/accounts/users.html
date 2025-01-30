@@ -71,7 +71,11 @@
                             onclick="fetchProfileDetails()">Profile</a>
                     </li>
                     <li class="nav-item">
+                        {% if current_user.is_authenticated %}
                         <a class="nav-link text-danger" href="{{ url_for('accounts.logout') }}">Logout</a>
+                        {% else %}
+                        <a class="nav-link text-danger" href="{{ url_for('accounts.login') }}">Login</a>
+                        {% endif %}
                     </li>
                 </ul>
             </div>
@@ -229,54 +233,125 @@
                             <!-- Coin Deposit Section -->
                             <div id="coinSection" class="d-none mt-4">
                                 <h6>Select a Coin</h6>
-                                {% for method in payment_methods if method.method_type == 'Cryptocurrency' %}
+                                <!-- {% for method in payment_methods if method.method_type == 'Cryptocurrency' %}
                                 <button type="button" class="btn btn-outline-secondary mb-3"
                                     onclick="setPaymentMethod('{{ method.sub_type }}', '{{ method.wallet_address }}', '{{ method.memo }}', '{{ method.network_address }}')">
                                     Generate {{ method.sub_type }} Wallet Address
                                 </button>
-                                {% endfor %}
-        
-                                <!-- Crypto Wallet Details -->
-                                <div id="btcDetails" class="d-none mt-3">
-                                    <h6>Crypto Wallet Details</h6>
-                                    <p><strong>Wallet Address:</strong> <span id="walletAddress"></span></p>
-                                    <p><strong>Memo:</strong> <span id="walletMemo"></span></p>
-                                    <p><strong>Network:</strong> <span id="walletNetwork"></span></p>
-                                    <input type="hidden" name="payment_method" id="selectedPaymentMethod">
-                                    <input type="hidden" name="recipient_details" id="selectedRecipient">
-        
-                                    <button type="submit" class="btn btn-success mt-4">I Have Paid</button>
+                                
+                                {% endfor %} -->
+
+                                <div class="">
+                                    <!-- Button to generate BTC details -->
+                                    <button type="button" class="btn btn-outline-secondary mb-3"
+                                        onclick="document.getElementById('btcDetails').classList.toggle('d-none')">
+                                        Generate BTC Wallet Details
+                                    </button>
+                                    
+                                    <!-- Button to generate USDT details -->
+                                    <button type="button" class="btn btn-outline-secondary mb-3"
+                                        onclick="document.getElementById('usdtDetails').classList.toggle('d-none')">
+                                        Generate USDT Wallet Details
+                                    </button>
                                 </div>
+                                
+        
+                                <!-- BTC Wallet Details -->
+                                <div id="btcDetails" class="d-none mt-3">
+                                    <h6>BTC Wallet Details</h6>
+                                    {% if payment_data.btc_method %}
+                                    <p><strong>Wallet Address:</strong> {{ payment_data.btc_method.wallet_address }}</p>
+                                    <p><strong>Memo:</strong> {{ payment_data.btc_method.memo }}</p>
+                                    <p><strong>Network:</strong> {{ payment_data.btc_method.network_address }}</p>
+                                    <input type="hidden" name="payment_method" value="{{ payment_data.btc_method.method_type }}" id="selectedBTCMethod">
+                                    <input type="hidden" name="recipient_details" id="selectedBTCRecipient">
+                                    {% else %}
+                                    <p>No BTC Crypto methods available.</p>
+                                    {% endif %}
+                                    <div>
+                                        <p style="text-align: left !important; margin-left: 50px;">
+                                            <strong class="text-success">
+                                                Steps to make Payments:<br>
+                                                1: copy the details above <br>
+                                                2: Make sure you confirm that the detials are currect before making payments<br>
+                                                3: Click on the i have paid Button <br>
+                                                4 :Wait for confirmations <br>
+                                                5: Accounts will be credited on confirmations <br>
+                                                Congratulation
+                                            </strong>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- USDT Wallet Details -->
+                                <div id="usdtDetails" class="d-none mt-3">
+                                    <h6>USDT Wallet Details</h6>
+                                    {% if payment_data.usdt_method %}
+                                    <p><strong>Wallet Address:</strong> {{ payment_data.usdt_method.wallet_address }}</p>
+                                    <p><strong>Memo:</strong> {{ payment_data.usdt_method.memo }}</p>
+                                    <p><strong>Network:</strong> {{ payment_data.usdt_method.network_address }}</p>
+                                    <input type="hidden" name="payment_method" value="{{ payment_data.usdt_method.method_type }}"  id="selectedUSDTMethod">
+                                    <input type="hidden" name="recipient_details" id="selectedUSDTRecipient">
+                                    {% else %}
+                                    <p>No USDT Crypto methods available.</p>
+                                    {% endif %}
+                                    <div>
+                                        <p style="text-align: left !important; margin-left: 50px;">
+                                            <strong class="text-success">
+                                                Steps to make Payments:<br>
+                                                1: copy the details above <br>
+                                                2: Make sure you confirm that the detials are currect before making payments<br>
+                                                3: Click on the i have paid Button <br>
+                                                4 :Wait for confirmations <br>
+                                                5: Accounts will be credited on confirmations <br>
+                                                Congratulation
+                                            </strong>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success mt-4">I Have Paid</button>
                             </div>
         
                             <!-- Bank Deposit Section -->
                             <div id="bankSection" class="d-none mt-4">
-                                {% for method in payment_methods if method.method_type == 'Bank Transfer' %}
                                 <button type="button" class="btn btn-outline-secondary mb-3"
-                                    onclick="setPaymentMethod('{{ method.bank_name }}', '{{ method.account_number }}, {{ method.account_name }}, {{ method.method_type }}')">
+                                    onclick="document.getElementById('bankDetails').classList.toggle('d-none')">
                                     Generate Bank Details
                                 </button>
-                                {% endfor %}
                                 <div id="bankDetails" class="d-none mt-3">
                                     <h6>Bank Deposit</h6>
-                                    {% for method in payment_methods if method.method_type == 'Bank Transfer' %}
-                                    <p><strong>Bank Name:</strong> {{ method.bank_name }}</p>
-                                    <p><strong>Account Number:</strong> {{ method.account_number }}</p>
-                                    <p><strong>Account Name:</strong> {{ method.account_name }}</p>
-                                    <!-- <button type="button" class="btn btn-outline-secondary mb-3"
-                                        onclick="setBankPaymentMethod('{{ method.bank_name }}', '{{ method.account_number }}')">
-                                        Select {{ method.bank_name }}
-                                    </button> -->
-                                    {% endfor %}
-                                    <input type="hidden" name="payment_method" id="selectedBankMethod">
+                                    {% if payment_data.bank_method %}
+                                    <p><strong>Bank Name:</strong> {{ payment_data.bank_method.bank_name }}</p>
+                                    <p><strong>Account Number:</strong> {{ payment_data.bank_method.account_number }}</p>
+                                    <p><strong>Account Name:</strong> {{ payment_data.bank_method.account_name }}</p>
+                                   
+                                    <input type="hidden" name="payment_method" value="{{ payment_data.bank_method.method_type }}" id="selectedBankMethod">
                                     <input type="hidden" name="recipient_details" id="selectedBankRecipient">
+                                    {% else %}
+                                    <p>No Bank Transfer methods available.</p>
+                                    {% endif %}
                                     
-                                    <button type="submit" class="btn btn-success mt-4">I Have Paid</button>
-                                </div>
-                                
+                                    <div>
+                                        <p style="text-align: left !important; margin-left: 50px;">
+                                            <strong class="text-success">
+                                                Steps to make Payments:<br>
+                                                1: copy the details above <br>
+                                                2: Make sure you confirm that the detials are currect before making payments<br>
+                                                3: Click on the i have paid Button <br>
+                                                4 :Wait for confirmations <br>
+                                                5: Accounts will be credited on confirmations <br>
+                                                Congratulation
+                                            </strong> 
+                                        </p>
+                                    </div>
+                                    
         
-                                
+                                    
+                                    <button type="submit" class="btn btn-success mt-4" >I Have Paid</button>
+                                </div>
                             </div>
+
                         </form>
                     </div>
                 </div>
@@ -628,10 +703,10 @@
             document.getElementById("btcDetails").classList.remove("d-none");
         }
 
-        function setBankPaymentMethod(bank, accountNumber) {
-            document.getElementById("selectedBankMethod").value = bank;
-            document.getElementById("selectedBankRecipient").value = accountNumber;
-        }
+        //function setBankPaymentMethod(bank, accountNumber) {
+            //document.getElementById("selectedBankMethod").value = bank;
+            //document.getElementById("selectedBankRecipient").value = accountNumber;
+        //}
 
         document.addEventListener("DOMContentLoaded", function () {
             // Select all the "Generate Bank Details" buttons
