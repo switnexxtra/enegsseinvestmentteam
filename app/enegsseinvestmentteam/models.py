@@ -1,5 +1,6 @@
 from datetime import datetime
-from extensions import db  # Import db from extensions
+from extensions import db, login_manager  # Import db from extensions
+from flask_login import UserMixin  # Import UserMixin from flask_login
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
@@ -42,6 +43,28 @@ class User(db.Model):
     def check_password(self, password):
         """Verify if the provided password matches the stored hash."""
         return check_password_hash(self.password_hash, password)
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    # Flask-Login requires these properties/methods:
+    @property
+    def is_active(self):
+        return True  # Set this to False if you want to disable the user
+
+    @property
+    def is_authenticated(self):
+        return True  # Return True if the user is logged in
+
+    @property
+    def is_anonymous(self):
+        return False  # Return False since this is a real user
+
+    # Add get_id method required by Flask-Login
+    def get_id(self):
+        return str(self.id)
 
     def add_transaction(self, transaction_details):
         """Append a new transaction to the transaction history."""
@@ -90,3 +113,9 @@ class PaymentMethod(db.Model):
 
     def __repr__(self):
         return f'<PaymentMethod {self.id} for User {self.user_id}>'
+
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
