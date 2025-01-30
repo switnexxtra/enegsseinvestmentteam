@@ -1,13 +1,13 @@
 from flask import Flask
-from extensions import db  # Import from the new extensions module
+from extensions import db, login_manager  # Import from the new extensions module
 from flask_migrate import Migrate
 from blueprints.accounts.routes import accounts_blueprint, home
 from dotenv import load_dotenv
 import os
-from sqlalchemy import create_engine, text
-from sqlalchemy.pool import QueuePool
+from sqlalchemy import text
 import threading
 import time
+
 
 
 load_dotenv()
@@ -33,9 +33,12 @@ app.config.from_pyfile('config.py', silent=True)
 app.register_blueprint(home, url_prefix='/')
 app.register_blueprint(accounts_blueprint, url_prefix='/accounts')
 
+ 
 
 # Initialize the database and migration
 db.init_app(app)
+login_manager.init_app(app)
+
 migrate = Migrate(app, db)
 
 with app.app_context():
@@ -62,4 +65,4 @@ app.static_folder = 'static'
 
 if __name__ == "__main__":
     # app = create_app()
-    app.run(debug=True)
+    app.run()
