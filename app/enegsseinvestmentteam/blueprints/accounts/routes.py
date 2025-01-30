@@ -3,6 +3,7 @@ import json
 import os
 from flask import Blueprint, app, render_template, session
 import psycopg2
+from sqlalchemy.exc import OperationalError
 from flask import render_template, request, url_for, redirect, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_required, current_user  # Assuming you're using Flask-Login for user sessions
@@ -25,35 +26,43 @@ def index():
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
+@accounts_blueprint.errorhandler(OperationalError)
+def handle_db_error(e):
+    return jsonify({"error": "A database connection error occurred. Please refresh and try again."}), 500
+
 @accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username_or_email = request.form.get('username')
-        password = request.form.get('password')
+    try:
+        if request.method == 'POST':
+            username_or_email = request.form.get('username')
+            password = request.form.get('password')
 
-        # Validate form input
-        if not username_or_email or not password:
-            flash("Please provide both username/email and password.", "danger")
-            return redirect(url_for('accounts.login'))
-        
-        # Query the user by username or email
-        user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
+            # Validate form input
+            if not username_or_email or not password:
+                flash("Please provide both username/email and password.", "danger")
+                return redirect(url_for('accounts.login'))
+            
+            # Query the user by username or email
+            user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
 
-        if not user or not user.check_password(password):
-            flash("Invalid username/email or password.", "danger")
-            return redirect(url_for('accounts.login'))
+            if not user or not user.check_password(password):
+                flash("Invalid username/email or password.", "danger")
+                return redirect(url_for('accounts.login'))
 
-        if user.is_admin:
-            flash("Admin Login successful!", "success")
-            return redirect(url_for('accounts.admin_dashboard'))
-        
-        # Set session or login the user
-        session['user_id'] = user.id
-        session['username'] = user.username
-        flash("Login successful!", "success")
+            if user.is_admin:
+                flash("Admin Login successful!", "success")
+                return redirect(url_for('accounts.admin_dashboard'))
+            
+            # Set session or login the user
+            session['user_id'] = user.id
+            session['username'] = user.username
+            flash("Login successful!", "success")
 
-        # Redirect to the users.html page
-        return redirect(url_for('accounts.user_dashboard'))
+            # Redirect to the users.html page
+            return redirect(url_for('accounts.user_dashboard'))
+    except OperationalError:
+        flash("A temporary database issue occurred. Please refresh the page and try again.", "warning")
+        return redirect(url_for("accounts.login"))
 
     # Render login form for GET requests
     return render_template('accounts/login.html')
@@ -211,14 +220,14 @@ def user_dashboard():
     
     # Redirect to login if the user is not authenticated
     if not user_id:
-        return redirect(url_for('login'))
+        return redirect(url_for('accounts.login'))
 
     # Query the logged-in user's data
     user = User.query.get(user_id)
 
     # Check if the user exists in the database
     if not user:
-        return redirect(url_for('login'))  # Additional safety check
+        return redirect(url_for('accounts.login'))  # Additional safety check
     
     # Extract financial information
     financials = {
