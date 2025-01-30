@@ -1,6 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#payments">Payments</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#users">Users</a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="#transactions">Transactions</a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link text-danger" href="{{ url_for('accounts.logout') }}">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 <div class="container mt-5">
     <h2 class="mb-4 text-center text-success">Admin Dashboard</h2>
 
@@ -72,7 +100,7 @@
 
 
     <!-- Payment Method -->
-    <div class="card border-0 mt-4 mb-4">
+    <div class="card border-0 mt-4 mb-4" id="payments">
         <div class="card-header text-white shadow-sm ">
             <div class="card-header bg-danger text-white">
                 <h5 class="mb-0">Payment Methods</h5>
@@ -186,7 +214,7 @@
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">Users</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="users">
             <table class="table table-hover table-bordered mt-3">
                 <thead class="text-white" style="background-color: #007bff;">
                     <tr>
@@ -219,7 +247,7 @@
         <div class="card-header text-white" style="background-color: #6c757d;">
             <h5 class="mb-0">Transactions</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="transactions">
             <table class="table table-hover table-bordered mt-3">
                 <thead class="text-white bg-primary">
                     <tr>
@@ -310,25 +338,7 @@
             </div>
         </div>
     </div>
-    <!-- function populateModal(userId) {
-            fetch(`/accounts/get_user/${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('userId').value = data.id;
-                    document.getElementById('username').value = data.username;
-                    document.getElementById('email').value = data.email;
-                    document.getElementById('acc_balance').value = data.acc_balance;
-                    document.getElementById('total_investment').value = data.total_investment;
-                    document.getElementById('monthly_return').value = data.monthly_return;
-                    document.getElementById('transaction_status').value = data.transaction_status;
-                });
-        }
-        function populateModal(userId, transactionId) {
-        // Set the user_id and transaction_id dynamically when the button is clicked
-        document.getElementById('user_id').value = userId;
-        document.getElementById('transaction_id').value = transactionId;
-        }
-                 -->
+    
 </div>
 
 <script>
