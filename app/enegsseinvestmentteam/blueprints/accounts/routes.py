@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 from flask import Blueprint, app, render_template, session
@@ -34,10 +35,6 @@ def login():
         if not username_or_email or not password:
             flash("Please provide both username/email and password.", "danger")
             return redirect(url_for('accounts.login'))
-
-        if username_or_email == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            flash("Admin Login successful!", "success")
-            return redirect(url_for('accounts.admin_dashboard'))
         
         # Query the user by username or email
         user = User.query.filter((User.username == username_or_email) | (User.email == username_or_email)).first()
@@ -46,6 +43,10 @@ def login():
             flash("Invalid username/email or password.", "danger")
             return redirect(url_for('accounts.login'))
 
+        if user.is_admin:
+            flash("Admin Login successful!", "success")
+            return redirect(url_for('accounts.admin_dashboard'))
+        
         # Set session or login the user
         session['user_id'] = user.id
         session['username'] = user.username
@@ -66,46 +67,95 @@ def register():
 
 @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
 def register_user():
-    print("registeration method called")
     try:
         # Get form data
         username = request.form.get('username')
-        email = request.form.get('email')
+        email = request.form.get('email') or None  # Set email to None if empty
         country = request.form.get('country')
         mobile = request.form.get('mobile')
         password = request.form.get('password')
         password_confirmation = request.form.get('password_confirmation')
-        
+
         # Validate passwords match
         if password != password_confirmation:
             flash("Passwords do not match.", "danger")
             print("Passwords do not match.", "danger")
-            return redirect(url_for('register'))  # Replace 'register' with your registration form route
+            return redirect(url_for('accounts.register'))  # Adjust if needed
 
-        # Check if the user already exists
-        if User.query.filter((User.username == username) | (User.email == email) | (User.mobile == mobile)).first():
-            flash("User already exists with the given username, email, or mobile number.", "danger")
-            return redirect(url_for('register'))  # Replace 'register' with your registration form route
+        # Check if the user already exists (ignoring email if None)
+        existing_user = User.query.filter(
+            (User.username == username) | 
+            (User.mobile == mobile) | 
+            ((User.email == email) if email else False)  # Check email only if provided
+        ).first()
+
+        if existing_user:
+            flash("User already exists with the given username or mobile number.", "danger")
+            print("User already exists.", "danger")
+            return redirect(url_for('accounts.register'))  # Adjust if needed
 
         # Create a new user
         new_user = User(
             username=username,
-            email=email,
+            email=email,  # Can be None
             country=country,
             mobile=mobile,
-            password=password # Password will be hashed in the User model
+            password=password  # Ensure hashing in the User model
         )
         db.session.add(new_user)
         db.session.commit()
         flash("Account created successfully!", "success")
         print("Account created successfully!", "success")
-        return redirect(url_for('accounts.login'))  # Replace 'login' with your login route
-    
+        return redirect(url_for('accounts.login'))  # Adjust if needed
+
     except Exception as e:
         db.session.rollback()
         flash(f"An error occurred: {e}", "danger")
         print(f"An error occurred: {e}", "danger")
-        return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
+        return redirect(url_for('accounts.register'))  # Adjust if needed
+
+# @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
+# def register_user():
+#     print("registeration method called")
+#     try:
+#         # Get form data
+#         username = request.form.get('username')
+#         email = request.form.get('email')
+#         country = request.form.get('country')
+#         mobile = request.form.get('mobile')
+#         password = request.form.get('password')
+#         password_confirmation = request.form.get('password_confirmation')
+        
+#         # Validate passwords match
+#         if password != password_confirmation:
+#             flash("Passwords do not match.", "danger")
+#             print("Passwords do not match.", "danger")
+#             return redirect(url_for('register'))  # Replace 'register' with your registration form route
+
+#         # Check if the user already exists
+#         if User.query.filter((User.username == username) | (User.email == email) | (User.mobile == mobile)).first():
+#             flash("User already exists with the given username, email, or mobile number.", "danger")
+#             return redirect(url_for('register'))  # Replace 'register' with your registration form route
+
+#         # Create a new user
+#         new_user = User(
+#             username=username,
+#             email=email,
+#             country=country,
+#             mobile=mobile,
+#             password=password # Password will be hashed in the User model
+#         )
+#         db.session.add(new_user)
+#         db.session.commit()
+#         flash("Account created successfully!", "success")
+#         print("Account created successfully!", "success")
+#         return redirect(url_for('accounts.login'))  # Replace 'login' with your login route
+    
+#     except Exception as e:
+#         db.session.rollback()
+#         flash(f"An error occurred: {e}", "danger")
+#         print(f"An error occurred: {e}", "danger")
+#         return redirect(url_for('accounts.register'))  # Replace 'register' with your registration form route
     
     
     
@@ -212,57 +262,49 @@ def user_dashboard():
 
 
 
-    return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_methods=payment_data)  # Ensure this file exists
+    return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_methods=payment_data, user_id=user_id)  # Ensure this file exists
 
 
+    
 @accounts_blueprint.route('/new_transaction', methods=['POST'])
 def add_new_transaction():
-    # Retrieve transaction details from the POST request
-    transaction_details = request.json  # Assuming data is sent as JSON
+    amount = request.form.get('amount')
+    payment_method = request.form.get('payment_method')
+    recipient_details = request.form.get('recipient_details')
 
-    user_id = transaction_details.get('user_id')
-    amount = transaction_details.get('amount')
-    payment_method = transaction_details.get('payment_method')
-    recipient_details = transaction_details.get('recipient_details')
+    if not amount or not payment_method or not recipient_details:
+        flash("All fields are required!", "danger")
+        return redirect(url_for('accounts.user_dashboard'))
 
-    # Get the user by ID
+    # Fetch the current user's ID from session
+    user_id = session.get('user_id')
+    
+    # Fetch the user based on the user_id
     user = User.query.get(user_id)
-
-    if user:
+    
+    # Get the current date and time
+    now = datetime.now()
+    try:
         # Create a new transaction
         transaction = Transaction(
             user_id=user.id,
-            amount=amount,
+            amount=float(amount),
             payment_method=payment_method,
             recipient_details=recipient_details,
-            transaction_status='pending'  # Set the status to "pending"
+            transaction_status='pending',  # Mark as pending
         )
 
-        # Add the transaction to the database
         db.session.add(transaction)
         db.session.commit()
 
-        # Fetch updated transaction history
-        transactions = Transaction.query.filter_by(user_id=user.id).all()
+        flash("Transaction recorded successfully. Await verification.", "success")
+    except Exception as e:
+        print(e)
+        db.session.rollback()
+        flash("An error occurred while processing your transaction.", "danger")
 
-        # Return the updated transaction history and success status
-        return jsonify({
-            "message": "Transaction recorded",
-            "status": "success",
-            "transactions": [
-                {
-                    "date": transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                    "description": f"{payment_method.capitalize()} Payment to {recipient_details}",
-                    "amount": transaction.amount,
-                    "status": transaction.transaction_status
-                }
-                for transaction in transactions
-            ]
-        }), 200
+    return redirect(url_for('accounts.user_dashboard'))
 
-    else:
-        return jsonify({"message": "User not found", "status": "error"}), 404
-    
 
 @accounts_blueprint.route('/withdraw', methods=['POST'])
 def withdraw():
