@@ -4,6 +4,10 @@ from flask_migrate import Migrate
 from blueprints.accounts.routes import accounts_blueprint, home
 from dotenv import load_dotenv
 import os
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import QueuePool
+import threading
+import time
 
 
 load_dotenv()
@@ -12,14 +16,10 @@ load_dotenv()
 # def create_app():
 app = Flask(__name__, instance_relative_config=True)
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = ''
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# app.config['SECRET_KEY'] = '@Enegssei123-5investmentteam808092BuilD'
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL', "sqlite:///fallback.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 
 
 # Security settings
@@ -40,6 +40,20 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
+# Function to keep database connection alive
+def keep_db_alive():
+    with app.app_context():
+        while True:
+            try:
+                with db.engine.connect() as conn:  # Use db.engine instead of creating a new one
+                    conn.execute(text("SELECT 1"))
+                    print('connection made')
+            except Exception as e:
+                print(f"Database keep-alive failed: {e}")
+            time.sleep(600)  # Run every 10 minutes
+
+# Start the keep-alive thread
+threading.Thread(target=keep_db_alive, daemon=True).start()
 
 # Serve static files
 app.static_folder = 'static'
