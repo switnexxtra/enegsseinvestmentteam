@@ -101,60 +101,66 @@
 
     <!-- Payment Method -->
     <div class="card border-0 mt-4 mb-4" id="payments">
-        <div class="card-header text-white shadow-sm ">
+        <div class="card-header text-white shadow-sm">
             <div class="card-header bg-danger text-white">
                 <h5 class="mb-0">Payment Methods</h5>
             </div>
             <div class="card-body">
-                <table class="table table-striped">
-                    <thead class="bg-primary text-white">
-                        <tr>
-                            <th>Method Type</th>
-                            <th>Account Number</th>
-                            <th>Bank Name</th>
-                            <th>Account Name</th>
-                            <th>Wallet Address</th>
-                            <th>Memo</th>
-                            <th>Network Address</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for method in payment_methods %}
-                        <tr>
-                            <td>{{ method.method_type }}</td>
-                            <td>{{ method.account_number }}</td>
-                            <td>{{ method.bank_name }}</td>
-                            <td>{{ method.account_name }}</td>
-                            <td>{{ method.wallet_address[:13] }}</td>
-                            <td>{{ method.memo[:13] }}</td>
-                            <td>{{ method.network_address }}</td>
-                            <td>
-                                <!-- Edit Button -->
-                                <button class="btn btn-sm text-success" data-bs-toggle="modal" data-bs-target="#editPaymentMethodModal"
-                                    data-id="{{ method.id }}" data-user-id="{{ method.user_id }}" data-method-type="{{ method.method_type }}"
-                                    data-account-number="{{ method.account_number }}" data-bank-name="{{ method.bank_name }}"
-                                    data-account-name="{{ method.account_name }}" data-sub-type="{{ method.sub_type }}"
-                                    data-wallet-address="{{ method.wallet_address }}" data-memo="{{ method.memo }}"
-                                    data-network-address="{{ method.network_address }}">
-                                    <i class="bi bi-pencil"></i> <!-- Edit Icon -->
-                                </button>
-                                
-                                <!-- Delete Button -->
-                                <form action="{{ url_for('accounts.delete_payment_method', method_id=method.id) }}" method="POST"
-                                    style="display:inline;">
-                                    <button type="submit" class="btn btn-sm text-danger">
-                                        <i class="bi bi-trash"></i> <!-- Delete Icon -->
+                <!-- Make the table responsive -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="bg-primary text-white">
+                            <tr>
+                                <th>Method Type</th>
+                                <th>Account Number</th>
+                                <th>Bank Name</th>
+                                <th>Account Name</th>
+                                <th>Wallet Address</th>
+                                <th>Memo</th>
+                                <th>Network Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for method in payment_methods %}
+                            <tr>
+                                <td>{{ method.method_type }}</td>
+                                <td>{{ method.account_number }}</td>
+                                <td>{{ method.bank_name }}</td>
+                                <td>{{ method.account_name }}</td>
+                                <td>{{ method.wallet_address[:13] }}</td>
+                                <td>{{ method.memo[:13] }}</td>
+                                <td>{{ method.network_address }}</td>
+                                <td>
+                                    <!-- Edit Button -->
+                                    <button class="btn btn-sm text-success" data-bs-toggle="modal"
+                                        data-bs-target="#editPaymentMethodModal" data-id="{{ method.id }}"
+                                        data-user-id="{{ method.user_id }}" data-method-type="{{ method.method_type }} "
+                                        data-account-number="{{ method.account_number }}"
+                                        data-bank-name="{{ method.bank_name }}"
+                                        data-account-name="{{ method.account_name }}" data-sub-type="{{ method.sub_type }}"
+                                        data-wallet-address="{{ method.wallet_address }}" data-memo="{{ method.memo }}"
+                                        data-network-address="{{ method.network_address }}">
+                                        <i class="bi bi-pencil"></i> <!-- Edit Icon -->
                                     </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    
+                                    <!-- Delete Button -->
+                                    <form action="{{ url_for('accounts.delete_payment_method', method_id=method.id) }}"
+                                        method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm text-danger">
+                                            <i class="bi bi-trash"></i> <!-- Delete Icon -->
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+
     
     <!-- Edit Payment Method Modal -->
     <div class="modal fade" id="editPaymentMethodModal" tabindex="-1" aria-labelledby="editPaymentMethodModalLabel"
