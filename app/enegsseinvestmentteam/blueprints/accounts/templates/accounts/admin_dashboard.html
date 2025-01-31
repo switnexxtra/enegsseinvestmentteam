@@ -327,6 +327,7 @@
                         <th>ID</th>
                         <th>Username</th>
                         <th>Amount</th>
+                        <th>Method</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
@@ -337,6 +338,7 @@
                         <td>{{ transaction.id }}</td>
                         <td>{{ transaction.user.username }}</td>
                         <td>PGK {{ transaction.amount }}</td>
+                        <td>PGK {{ transaction.recipient_details }}</td>
                         <td>
                             {% if transaction.transaction_status == 'Completed' %}
                             <span class="badge bg-success text-white">Completed</span>
