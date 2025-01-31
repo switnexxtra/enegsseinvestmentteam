@@ -372,6 +372,42 @@ def admin_dashboard():
 
     return render_template('accounts/admin_dashboard.html', users=users, payment_methods=payment_methods, transactions=transactions)
 
+@accounts_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    print(f"Current user: {current_user.username}, is_admin: {current_user.is_admin}")
+    # Ensure only admins can delete users
+    if not current_user.is_admin:
+        flash('Unauthorized action!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Find the user by ID
+    user = User.query.get(user_id)
+
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Prevent an admin from deleting themselves
+    if user.id == current_user.id:
+        flash("You can't delete your own account!", "danger")
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    try:
+        # Delete related records if necessary (e.g., transactions)
+        Transaction.query.filter_by(user_id=user.id).delete()
+        PaymentMethod.query.filter_by(user_id=user.id).delete()
+
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+
+        flash('User deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting user: {e}", "danger")
+
+    return redirect(url_for('accounts.admin_dashboard'))
 
 
 @accounts_blueprint.route('/add_payment_method', methods=['GET', 'POST'])
