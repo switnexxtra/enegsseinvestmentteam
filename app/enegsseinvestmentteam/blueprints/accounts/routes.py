@@ -564,6 +564,28 @@ def delete_transaction(transaction_id):
     # Redirect back to the transactions page
     return redirect(url_for('accounts.admin_dashboard'))
 
+@accounts_blueprint.route('/user/update_user', methods=['POST'])
+@login_required
+def update_user():
+    if not current_user.is_admin:
+        flash('Unauthorized action!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    user_id = request.form.get('user_id')
+    user = User.query.get(user_id)
+
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Update values from the form
+    user.acc_balance = float(request.form.get('acc_balance', 0.0))
+    user.total_investment = float(request.form.get('total_investment', 0.0))
+    user.monthly_return = float(request.form.get('monthly_return', 0.0))
+
+    db.session.commit()
+    flash('User updated successfully!', 'success')
+    return redirect(url_for('accounts.admin_dashboard'))
 
 
 @accounts_blueprint.route('/edit_user', methods=['POST'])
