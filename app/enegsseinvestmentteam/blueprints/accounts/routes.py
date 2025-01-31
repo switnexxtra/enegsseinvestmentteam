@@ -277,7 +277,7 @@ def withdraw():
             user_id=user.id,
             amount=withdraw_amount,
             payment_method='bank',  # Assuming bank is the payment method for withdrawals
-            recipient_details=f"Account Name: {account_name}, Account Number: {account_number}, Bank Name: {bank_name}"
+            recipient_details=f"Withdrawal Request!"
         )
         
         # Update the user's account balance
