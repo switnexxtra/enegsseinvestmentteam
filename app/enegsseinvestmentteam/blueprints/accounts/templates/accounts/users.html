@@ -214,6 +214,9 @@
                     <div class="modal-body text-center">
                         <!-- Deposit Form -->
                         <form action="{{ url_for('accounts.add_new_transaction') }}" method="POST">
+                            <!-- Add these at the top of your form -->
+                            <input type="hidden" name="payment_method" value="">
+                            <input type="hidden" name="recipient_details" value="">
                             <!-- Deposit Amount Input -->
                             <div class="mb-4">
                                 <label for="depositAmount" class="form-label">Enter Deposit Amount</label>
@@ -227,19 +230,13 @@
                                 <button type="button" class="btn btn-outline-success mb-3" id="coinDeposit">Crypto
                                     Currency</button>
                                 <button type="button" class="btn btn-outline-primary mb-3" id="bankDeposit">Bank
-                                    Deposit</button>
+                                    Deposit
+                                </button>
                             </div>
         
                             <!-- Coin Deposit Section -->
                             <div id="coinSection" class="d-none mt-4">
-                                <h6>Select a Coin</h6>
-                                <!-- {% for method in payment_methods if method.method_type == 'Cryptocurrency' %}
-                                <button type="button" class="btn btn-outline-secondary mb-3"
-                                    onclick="setPaymentMethod('{{ method.sub_type }}', '{{ method.wallet_address }}', '{{ method.memo }}', '{{ method.network_address }}')">
-                                    Generate {{ method.sub_type }} Wallet Address
-                                </button>
-                                
-                                {% endfor %} -->
+                                <h6>Select a Coin</h>
 
                                 <div class="">
                                     <!-- Button to generate BTC details -->
@@ -263,8 +260,7 @@
                                     <p><strong>Wallet Address:</strong> {{ payment_data.btc_method.wallet_address }}</p>
                                     <p><strong>Memo:</strong> {{ payment_data.btc_method.memo }}</p>
                                     <p><strong>Network:</strong> {{ payment_data.btc_method.network_address }}</p>
-                                    <input type="hidden" name="payment_method" value="{{ payment_data.btc_method.method_type }}" id="selectedBTCMethod">
-                                    <input type="hidden" name="recipient_details" id="selectedBTCRecipient">
+
                                     {% else %}
                                     <p>No BTC Crypto methods available.</p>
                                     {% endif %}
@@ -290,8 +286,7 @@
                                     <p><strong>Wallet Address:</strong> {{ payment_data.usdt_method.wallet_address }}</p>
                                     <p><strong>Memo:</strong> {{ payment_data.usdt_method.memo }}</p>
                                     <p><strong>Network:</strong> {{ payment_data.usdt_method.network_address }}</p>
-                                    <input type="hidden" name="payment_method" value="{{ payment_data.usdt_method.method_type }}"  id="selectedUSDTMethod">
-                                    <input type="hidden" name="recipient_details" id="selectedUSDTRecipient">
+                                    
                                     {% else %}
                                     <p>No USDT Crypto methods available.</p>
                                     {% endif %}
@@ -325,9 +320,8 @@
                                     <p><strong>Bank Name:</strong> {{ payment_data.bank_method.bank_name }}</p>
                                     <p><strong>Account Number:</strong> {{ payment_data.bank_method.account_number }}</p>
                                     <p><strong>Account Name:</strong> {{ payment_data.bank_method.account_name }}</p>
-                                   
-                                    <input type="hidden" name="payment_method" value="{{ payment_data.bank_method.method_type }}" id="selectedBankMethod">
-                                    <input type="hidden" name="recipient_details" id="selectedBankRecipient">
+                                    <p>Selected Payment Method: {{ payment_data.bank_method.method_type if payment_data.bank_method else 'None' }}</p>
+                                    
                                     {% else %}
                                     <p>No Bank Transfer methods available.</p>
                                     {% endif %}
@@ -703,26 +697,80 @@
             document.getElementById("btcDetails").classList.remove("d-none");
         }
 
-        //function setBankPaymentMethod(bank, accountNumber) {
-            //document.getElementById("selectedBankMethod").value = bank;
-            //document.getElementById("selectedBankRecipient").value = accountNumber;
-        //}
+        // Get form elements
+        const form = document.querySelector('form');
+        const paymentMethods = document.getElementById('paymentMethods');
+        const coinSection = document.getElementById('coinSection');
+        const bankSection = document.getElementById('bankSection');
+        const depositAmount = document.getElementById('depositAmount');
 
-        document.addEventListener("DOMContentLoaded", function () {
-            // Select all the "Generate Bank Details" buttons
-            const generateButtons = document.querySelectorAll("#bankSection button");
+        // Get buttons
+        const coinDepositBtn = document.getElementById('coinDeposit');
+        const bankDepositBtn = document.getElementById('bankDeposit');
 
-            // Select the bank details section
-            const bankDetails = document.getElementById("bankDetails");
-
-            generateButtons.forEach(button => {
-                button.addEventListener("click", function () {
-                    // Show the bank details when a button is clicked
-                    bankDetails.classList.remove("d-none");
-                });
-            });
+        // Show payment methods when amount is entered
+        depositAmount.addEventListener('input', function () {
+            if (this.value > 0) {
+                paymentMethods.classList.remove('d-none');
+            } else {
+                paymentMethods.classList.add('d-none');
+            }
         });
 
+        // Handle crypto deposit button click
+        coinDepositBtn.addEventListener('click', function () {
+            coinSection.classList.remove('d-none');
+            bankSection.classList.add('d-none');
+        });
+
+        // Handle bank deposit button click
+        bankDepositBtn.addEventListener('click', function () {
+            bankSection.classList.remove('d-none');
+            coinSection.classList.add('d-none');
+        });
+
+        // Function to update payment method and recipient details
+        function updatePaymentMethod(methodType, recipientDetails) {
+            const paymentMethodInput = document.querySelector('input[name="payment_method"]');
+            const recipientDetailsInput = document.querySelector('input[name="recipient_details"]');
+
+            if (paymentMethodInput) {
+                paymentMethodInput.value = methodType;
+            }
+            if (recipientDetailsInput) {
+                recipientDetailsInput.value = recipientDetails;
+            }
+        }
+
+        // Add click handlers for BTC and USDT buttons
+        document.querySelector('button[onclick*="btcDetails"]').addEventListener('click', function () {
+            updatePaymentMethod('BTC', document.getElementById('btcDetails').textContent.trim());
+        });
+
+        document.querySelector('button[onclick*="usdtDetails"]').addEventListener('click', function () {
+            updatePaymentMethod('USDT', document.getElementById('usdtDetails').textContent.trim());
+        });
+
+        // Add click handler for bank details button
+        document.querySelector('button[onclick*="bankDetails"]').addEventListener('click', function () {
+            updatePaymentMethod('Bank Transfer', document.getElementById('bankDetails').textContent.trim());
+        });
+
+        // Form submission handler
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Validate that a payment method is selected
+            const paymentMethod = document.querySelector('input[name="payment_method"]').value;
+            if (!paymentMethod) {
+                alert('Please select a payment method');
+                return;
+            }
+
+            // If all validation passes, submit the form
+            this.submit();
+        });
+        
     </script>
     {% endblock %}
 </body>
