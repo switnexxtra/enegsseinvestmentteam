@@ -29,8 +29,8 @@ ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
 @accounts_blueprint.errorhandler(OperationalError)
 def handle_db_error(e):
-    flash("Sorry an error occurred. Please refresh and try again.", "error")
-    return jsonify({"error": "Sorry an error occurred. Please refresh and try again."}), 500
+    flash("Sorry an error occurred Due to so many requests. Please refresh and try again.", "error")
+    return jsonify({"error": "Sorry an error occurred Due to so many requests. Please refresh and try again."}), 500
 
 
 @accounts_blueprint.route('/user/register', methods=['GET', 'POST'])
@@ -118,42 +118,12 @@ def login():
     # Render login form for GET requests
     return render_template('accounts/login.html')
 
-# @accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
-# def login():
-#     try:
-#         if request.method == 'POST':
-#             username = request.form['username']
-#             password = request.form['password']
-#             user = User.query.filter_by(username=username).first()
-            
-#             if user and user.check_password(password):
-#                 login_user(user)
-#                 flash('Login successful!', 'success')
-
-#                 # Redirect admin users to the admin dashboard
-#                 if user.is_admin:
-#                     return redirect(url_for('admin.admin_dashboard'))  # Replace with the correct route
-
-#                 # Redirect regular users to their dashboard
-#                 return redirect(url_for('accounts.user_dashboard'))
-#             else:
-#                 flash('Invalid username or password!', 'danger')
-#                 return redirect(url_for('accounts.login'))
-#     except Exception as e:
-#         flash(f"An error occurred: {e}", "danger")
-#         return redirect(url_for('accounts.login'))  # Redirect to login in case of an error
 
 
 @accounts_blueprint.route('/user-dashboard')
 @login_required
 def user_dashboard():
     # Retrieve the logged-in user's ID from the session
-    # user_id = session.get('user_id')
-    # user = current_user  # Flask-Login handles session management
-    
-    # # Redirect to login if the user is not authenticated
-    # if not user_id:
-    #     return redirect(url_for('accounts.login'))
     
     user = current_user  # Flask-Login handles session management
 
@@ -217,6 +187,10 @@ def user_dashboard():
         'btc_method': random.choice(btc_methods) if btc_methods else None,  # Randomly select one BTC method
         'usdt_method': random.choice(usdt_methods) if usdt_methods else None,  # Randomly select one USDT method
     }
+    
+    # Ensure bank_method is assigned correctly
+    if not payment_data['bank_method']:
+        payment_data['bank_method'] = None  # Explicitly set to avoid referencing non-existent data
 
     return render_template('accounts/users.html', financials=financials, transactions=transaction_data, payment_data=payment_data, user_id=user_id)
 
@@ -225,9 +199,13 @@ def user_dashboard():
 def add_new_transaction():
     amount = request.form.get('amount')
     payment_method = request.form.get('payment_method')
-    recipient_details = request.form.get('recipient_details')
+    # recipient_details = request.form.get('recipient_details')
+    recipient_details = f"Payment Via: {payment_method}"
 
+    
     print(f"Amount: {amount}, Payment Method: {payment_method}, Recipient Details: {recipient_details}")
+    
+    print(f"DEBUG: Amount={amount}, Payment Method={payment_method}, Recipient Details={recipient_details}")
     if not amount or not payment_method:
         flash("All fields are required!", "danger")
         return redirect(url_for('accounts.user_dashboard'))
@@ -236,11 +214,6 @@ def add_new_transaction():
         recipient_details = f"Payment Via: {payment_method}"
         
 
-    # Fetch the current user's ID from session
-    # user_id = session.get('user_id')
-    
-    # Fetch the user based on the user_id
-    # user = User.query.get(user_id)
     user = current_user
     # user_id=user.id
     
@@ -372,42 +345,6 @@ def admin_dashboard():
 
     return render_template('accounts/admin_dashboard.html', users=users, payment_methods=payment_methods, transactions=transactions)
 
-@accounts_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])
-@login_required
-def delete_user(user_id):
-    print(f"Current user: {current_user.username}, is_admin: {current_user.is_admin}")
-    # Ensure only admins can delete users
-    if not current_user.is_admin:
-        flash('Unauthorized action!', 'danger')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    # Find the user by ID
-    user = User.query.get(user_id)
-
-    if not user:
-        flash('User not found!', 'danger')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    # Prevent an admin from deleting themselves
-    if user.id == current_user.id:
-        flash("You can't delete your own account!", "danger")
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    try:
-        # Delete related records if necessary (e.g., transactions)
-        Transaction.query.filter_by(user_id=user.id).delete()
-        PaymentMethod.query.filter_by(user_id=user.id).delete()
-
-        # Delete the user
-        db.session.delete(user)
-        db.session.commit()
-
-        flash('User deleted successfully!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error deleting user: {e}", "danger")
-
-    return redirect(url_for('accounts.admin_dashboard'))
 
 
 @accounts_blueprint.route('/add_payment_method', methods=['GET', 'POST'])
@@ -495,6 +432,67 @@ def delete_payment_method(method_id):
     return redirect(url_for('accounts.admin_dashboard'))
 
 
+@accounts_blueprint.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    print(f"Current user: {current_user.username}, is_admin: {current_user.is_admin}")
+    # Ensure only admins can delete users
+    if not current_user.is_admin:
+        flash('Unauthorized action!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Find the user by ID
+    user = User.query.get(user_id)
+
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Prevent an admin from deleting themselves
+    if user.id == current_user.id:
+        flash("You can't delete your own account!", "danger")
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    try:
+        # Delete related records if necessary (e.g., transactions)
+        Transaction.query.filter_by(user_id=user.id).delete()
+        PaymentMethod.query.filter_by(user_id=user.id).delete()
+
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+
+        flash('User deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting user: {e}", "danger")
+
+    return redirect(url_for('accounts.admin_dashboard'))
+
+
+@accounts_blueprint.route('/user/update_user', methods=['POST'])
+@login_required
+def update_user():
+    if not current_user.is_admin:
+        flash('Unauthorized action!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    user_id = request.form.get('user_id')
+    user = User.query.get(user_id)
+
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('accounts.admin_dashboard'))
+
+    # Update values from the form
+    user.acc_balance = float(request.form.get('acc_balance', 0.0))
+    user.total_investment = float(request.form.get('total_investment', 0.0))
+    user.monthly_return = float(request.form.get('monthly_return', 0.0))
+
+    db.session.commit()
+    flash('User updated successfully!', 'success')
+    return redirect(url_for('accounts.admin_dashboard'))
+
 
 
 from flask import request, redirect, url_for, flash
@@ -564,28 +562,6 @@ def delete_transaction(transaction_id):
     # Redirect back to the transactions page
     return redirect(url_for('accounts.admin_dashboard'))
 
-@accounts_blueprint.route('/user/update_user', methods=['POST'])
-@login_required
-def update_user():
-    if not current_user.is_admin:
-        flash('Unauthorized action!', 'danger')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    user_id = request.form.get('user_id')
-    user = User.query.get(user_id)
-
-    if not user:
-        flash('User not found!', 'danger')
-        return redirect(url_for('accounts.admin_dashboard'))
-
-    # Update values from the form
-    user.acc_balance = float(request.form.get('acc_balance', 0.0))
-    user.total_investment = float(request.form.get('total_investment', 0.0))
-    user.monthly_return = float(request.form.get('monthly_return', 0.0))
-
-    db.session.commit()
-    flash('User updated successfully!', 'success')
-    return redirect(url_for('accounts.admin_dashboard'))
 
 
 @accounts_blueprint.route('/edit_user', methods=['POST'])
