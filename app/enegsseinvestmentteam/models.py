@@ -7,7 +7,7 @@ import json
 
 # User model
 class User(db.Model):
-    __tablename__ = 'users'
+    __tablename__ = 'users'  # Ensure this is set correctly
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)  # Added username field
@@ -19,6 +19,7 @@ class User(db.Model):
     acc_balance = db.Column(db.Float, default=0.0)
     total_investment = db.Column(db.Float, default=0.0)
     monthly_return = db.Column(db.Float, default=0.0)
+    withdrawn_balance = db.Column(db.Float, default=0.0)  # New field to track withdrawn balance
     transaction_history = db.Column(db.Text, nullable=True)  # This could be a JSON string or text
 
     # Relationship with PaymentMethod
@@ -30,31 +31,6 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
-    # Rest of the methods...
-    # def __init__(self, username, email, country, mobile, is_admin, password, acc_balance=0.0, total_investment=0.0, monthly_return=0.0):
-    #     self.username = username
-    #     self.email = email
-    #     self.country = country
-    #     self.mobile = mobile
-    #     self.is_admin = is_admin
-    #     self.password_hash = self.set_password(password)
-    #     self.acc_balance = acc_balance
-    #     self.total_investment = total_investment
-    #     self.monthly_return = monthly_return
-
-    # def set_password(self, password):
-    #     """Hash the password for storage."""
-    #     return generate_password_hash(password)
-
-    # def check_password(self, password):
-    #     """Verify if the provided password matches the stored hash."""
-    #     return check_password_hash(self.password_hash, password)
-    # def set_password(self, password):
-    #     self.password_hash = generate_password_hash(password)
-
-    # def check_password(self, password):
-    #     return check_password_hash(self.password_hash, password)
-
     # Flask-Login requires these properties/methods:
     @property
     def is_active(self):
@@ -125,3 +101,20 @@ class PaymentMethod(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Ensure correct table name
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# class SiteB(db.Model):
+#     __tablename__ = 'site_b'
+#     id = db.Column(db.Integer, primary_key=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+#     acc_balance = db.Column(db.Float, default=0.0)
+
+#     user = db.relationship('User', backref='site_b', lazy=True)
