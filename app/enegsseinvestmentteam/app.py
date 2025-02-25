@@ -1,10 +1,12 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from extensions import db, login_manager  # Import from the new extensions module
 from flask_migrate import Migrate
 from blueprints.accounts.routes import accounts_blueprint, home
+# from flask_jwt_extended import JWTManager, create_access_token
 from dotenv import load_dotenv
 import os
 from sqlalchemy import text
+# from flask_socketio import SocketIO
 import threading
 import time
 
@@ -53,7 +55,7 @@ def keep_db_alive():
                     print('connection made')
             except Exception as e:
                 print(f"Database keep-alive failed: {e}")
-            time.sleep(600)  # Run every 10 minutes
+            time.sleep(5)  # Run every 10 minutes
 
 # Start the keep-alive thread
 threading.Thread(target=keep_db_alive, daemon=True).start()
@@ -65,4 +67,4 @@ app.static_folder = 'static'
 
 if __name__ == "__main__":
     # app = create_app()
-    app.run()
+    app.run(debug=True)
