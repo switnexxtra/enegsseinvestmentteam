@@ -8,7 +8,7 @@ from flask import render_template, request, url_for, redirect, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, current_user, logout_user  # Assuming you're using Flask-Login for user sessions
 from extensions import login_manager  # Import from the new extensions module
-from models import db, User, Transaction, PaymentMethod, load_user  # Assuming your models are in a `models.py` file
+from models import Notification, db, User, Transaction, PaymentMethod, load_user  # Assuming your models are in a `models.py` file
 
 
 
@@ -36,27 +36,6 @@ def handle_db_error(e):
 @accounts_blueprint.route('/user/register', methods=['GET', 'POST'])
 def register():
     return render_template('accounts/register.html')
-
-
-# @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
-# def register_user():
-#     if request.method == 'POST':
-#         username = request.form['username']
-#         email = request.form['email']
-#         country = request.form['country']
-#         mobile = request.form['mobile']
-#         password = request.form['password']
-
-#         if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
-#             flash('Username or email already exists!', 'danger')
-#             return redirect(url_for('accounts.register_user'))
-
-#         new_user = User(username=username, email=email, country=country, mobile=mobile, password_hash=generate_password_hash(password))
-#         db.session.add(new_user)
-#         db.session.commit()
-#         flash('Account created successfully! Please login.', 'success')
-#         return redirect(url_for('accounts.login'))
-#     return render_template('accounts/register.html')
 
 
 @accounts_blueprint.route('/user/register_user', methods=['GET', 'POST'])
@@ -94,6 +73,55 @@ def register_user():
         return redirect(url_for('accounts.login'))
 
     return render_template('accounts/register.html')
+
+
+# <--------------------------------------- Start of the site Api ---------------------------------------------->
+
+@accounts_blueprint.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+
+    username_or_email = data.get('username_or_email')
+    password = data.get('password')
+
+    user = User.query.filter(
+        (User.username == username_or_email) | (User.email == username_or_email)
+    ).first()
+
+    if user and user.check_password(password):
+        login_user(user)  # Log the user in
+        return jsonify({
+            "message": "Login successful",
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "withdrawn_balance": user.withdrawn_balance,
+            "token": "fake-jwt-token"
+        }), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
+@accounts_blueprint.route("/send-notification", methods=["POST"])
+def send_notification():
+    data = request.get_json()
+    user_id = data.get("user_id")
+    message = data.get("message")
+
+    if not user_id or not message:
+        return jsonify({"message": "User ID and message are required"}), 400
+
+    # Store notification in database
+    notification = Notification(user_id=user_id, message=message, created_at=datetime.now())
+    db.session.add(notification)
+    db.session.commit()
+
+    return jsonify({"message": "Notification sent successfully"}), 200
+
+
+
+
+# <--------------------------------------- End of the site Api ---------------------------------------------->
 
 
 @accounts_blueprint.route('/user/login', methods=['GET', 'POST'])
@@ -497,44 +525,99 @@ def update_user():
 
 from flask import request, redirect, url_for, flash
 from sqlalchemy.exc import SQLAlchemyError
+# @accounts_blueprint.route('/edit_transaction', methods=['POST'])
+# def edit_transaction():
+    
+#     try:
+#         # Get the data from the form
+#         user_id = request.form.get('user_id')
+#         transaction_id = request.form.get('transaction_id')
+#         acc_balance = float(request.form.get('acc_balance'))
+#         total_investment = float(request.form.get('total_investment'))
+#         monthly_return = float(request.form.get('monthly_return'))
+#         transaction_status = request.form.get('transaction_status')
+
+#         # Find the user and the transaction
+#         user = User.query.get(user_id)
+#         transaction = Transaction.query.get(transaction_id)
+
+#         if not user or not transaction:
+#             flash('User or Transaction not found', 'danger')
+#             return redirect(url_for('accounts.admin_dashboard'))
+
+#         # Update user balance, investment, and return
+#         user.acc_balance = acc_balance
+#         user.total_investment = total_investment
+#         user.monthly_return = monthly_return
+
+#         # Update the transaction status
+#         transaction.transaction_status = transaction_status
+
+#         # Commit the changes to the database
+#         db.session.commit()
+
+#         flash('Transaction and user details updated successfully', 'success')
+#         return redirect(url_for('accounts.admin_dashboard'))
+
+#     except SQLAlchemyError as e:
+#         db.session.rollback()
+#         flash('An error occurred while updating the transaction. Please try again.', 'danger')
+#         return redirect(url_for('accounts.admin_dashboard'))
+
 @accounts_blueprint.route('/edit_transaction', methods=['POST'])
 def edit_transaction():
-    
     try:
-        # Get the data from the form
         user_id = request.form.get('user_id')
         transaction_id = request.form.get('transaction_id')
-        acc_balance = float(request.form.get('acc_balance'))
-        total_investment = float(request.form.get('total_investment'))
-        monthly_return = float(request.form.get('monthly_return'))
         transaction_status = request.form.get('transaction_status')
 
-        # Find the user and the transaction
+        if not user_id or not transaction_id:
+            flash("Missing user or transaction ID", "danger")
+            return redirect(url_for('accounts.admin_dashboard'))
+
         user = User.query.get(user_id)
         transaction = Transaction.query.get(transaction_id)
 
         if not user or not transaction:
-            flash('User or Transaction not found', 'danger')
+            flash("User or transaction not found.", "danger")
             return redirect(url_for('accounts.admin_dashboard'))
 
-        # Update user balance, investment, and return
-        user.acc_balance = acc_balance
-        user.total_investment = total_investment
-        user.monthly_return = monthly_return
+        if transaction_status == "Completed":
+            withdraw_amount = transaction.amount
 
-        # Update the transaction status
-        transaction.transaction_status = transaction_status
+            if user.acc_balance >= withdraw_amount:
+                user.acc_balance -= withdraw_amount  # Deduct from main balance
 
-        # Commit the changes to the database
-        db.session.commit()
+                if user.withdrawn_balance is None:
+                    user.withdrawn_balance = 0.0  # Initialize if None
 
-        flash('Transaction and user details updated successfully', 'success')
+                user.withdrawn_balance += withdraw_amount  # Add to withdrawn balance
+
+                # Update transaction details
+                transaction.transaction_status = "Completed"
+                transaction.recipient_details = "Withdrawal from SSE"
+
+                # Add to user's transaction history
+                user.add_transaction({
+                    'transaction_type': 'withdrawal',
+                    'amount': withdraw_amount,
+                    'status': 'completed',
+                    'recipient_details': 'Withdrawal from SSE'
+                })
+
+                db.session.commit()
+                flash("Transaction updated successfully!", "success")
+            else:
+                flash("Insufficient balance!", "danger")
+
         return redirect(url_for('accounts.admin_dashboard'))
 
-    except SQLAlchemyError as e:
+    except Exception as e:
         db.session.rollback()
-        flash('An error occurred while updating the transaction. Please try again.', 'danger')
+        flash(f"An error occurred: {str(e)}", "danger")
         return redirect(url_for('accounts.admin_dashboard'))
+
+    
 
 # @accounts_blueprint.route('/edit_transaction', methods=['POST'])
 @accounts_blueprint.route('/delete_transaction/<int:transaction_id>', methods=['POST'])
