@@ -20,6 +20,7 @@ class User(db.Model):
     total_investment = db.Column(db.Float, default=0.0)
     monthly_return = db.Column(db.Float, default=0.0)
     withdrawn_balance = db.Column(db.Float, default=0.0)  # New field to track withdrawn balance
+    successful_transfer = db.Column(db.Float, default=0.0)  # New field to track withdrawn balance
     transaction_history = db.Column(db.Text, nullable=True)  # This could be a JSON string or text
 
     # Relationship with PaymentMethod
