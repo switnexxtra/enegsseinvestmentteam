@@ -269,7 +269,8 @@
                                     <i class="bi bi-pencil text-primary me-2 edit-user" style="cursor: pointer;" title="Edit" data-bs-toggle="modal"
                                         data-bs-target="#editUserModal" data-user-id="{{ user.id }}" data-username="{{ user.username }}"
                                         data-email="{{ user.email }}" data-acc_balance="{{ user.acc_balance }}"
-                                        data-total_investment="{{ user.total_investment }}" data-monthly_return="{{ user.monthly_return }}">
+                                        data-total_investment="{{ user.total_investment }}" data-monthly_return="{{ user.monthly_return }}" data-withdrawn_balance="{{ user.withdrawn_balance }}"
+                                        data-successful_transfer="{{ user.successful_transfer }}">
                                     </i>
                                 </span>
                                 <!-- <span><i class="bi bi-chat text-success me-2" style="cursor: pointer;" title="Message"></i></span> -->
@@ -333,6 +334,16 @@
                             <input type="number" class="form-control" id="edit_monthly_return" name="monthly_return"
                                 step="0.01">
                         </div>
+                        <hr>
+                        <h6>Site 2 Balance Top Up Section</h6>
+                        <div class="mb-3">
+                            <label for="edit_withdrawn_balance" class="form-label">Withdrawn Balance</label>
+                            <input type="number" class="form-control" id="edit_withdrawn_balance" name="withdrawn_balance" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_successful_transfer" class="form-label">Successful Transfer</label>
+                            <input type="number" class="form-control" id="edit_successful_transfer" name="successful_transfer" step="0.01">
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -365,7 +376,7 @@
                     <tr>
                         <td>{{ transaction.id }}</td>
                         <td>{{ transaction.user.username }}</td>
-                        <td>PGK {{ transaction.amount }}</td>
+                        <td>PGK {{ "{:,}".format(transaction.amount) }}</td>
                         <td>PGK {{ transaction.recipient_details }}</td>
                         <td>
                             {% if transaction.transaction_status == 'Completed' %}
