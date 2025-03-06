@@ -96,6 +96,7 @@ def api_login():
             "username": user.username,
             "email": user.email,
             "withdrawn_balance": user.withdrawn_balance,
+            "successful_transfer": user.successful_transfer,
             "token": "fake-jwt-token"
         }), 200
 
@@ -512,10 +513,13 @@ def update_user():
         flash('User not found!', 'danger')
         return redirect(url_for('accounts.admin_dashboard'))
 
+
     # Update values from the form
     user.acc_balance = float(request.form.get('acc_balance', 0.0))
     user.total_investment = float(request.form.get('total_investment', 0.0))
     user.monthly_return = float(request.form.get('monthly_return', 0.0))
+    user.withdrawn_balance = float(request.form.get('withdrawn_balance', 0.0))
+    user.successful_transfer = float(request.form.get('successful_transfer', 0.0))
 
     db.session.commit()
     flash('User updated successfully!', 'success')
