@@ -1,6 +1,4 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -772,7 +770,26 @@
         });
         
     </script>
-    {% endblock %}
-</body>
 
-</html>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    document.getElementById("withdrawForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        Swal.fire({
+            title: "Important Notice!",
+            text: "Note: All administrative requirements must be cleared to proceed with this transaction.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If user clicks "Proceed," submit the form
+                event.target.submit();
+            }
+        });
+    });
+    </script>
+
+    {% endblock %}
